@@ -23,10 +23,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "concurrently \"npm run start-react\" \"npm run start-express\"",
-    "start-react": "react-scripts start",
-    "start-express": "node server/server.js",
-    "build": "react-scripts build",
+    "start": "node server/server.js", 
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "react-scripts build",
+    "build:server": "your-server-build-command-here",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
