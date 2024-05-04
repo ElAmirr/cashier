@@ -4,7 +4,8 @@ import Home from './components/Home';
 import NavBar from './components/NavBar';
 import AddProductForm from './components/AddProductForm';
 import Products from './components/Products';
-import Order from './components/Order';
+import Checkout from './components/Checkout';
+import Orders from './components/Orders';
 
 
 const App = () => {
@@ -14,9 +15,9 @@ const App = () => {
       <Switch>
         <Route exact path="/" component={Home} />
         <Route path="/products" component={Products} />
-        <Route path="/orders" component={Order} />
+        <Route path="/checkout" component={Checkout} />
         <Route path="/add_product" component={AddProductForm} />
-        
+        <Route path="/orders" component={Orders} />
       </Switch>
     </div>
   );

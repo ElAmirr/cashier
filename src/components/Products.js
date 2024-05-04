@@ -10,6 +10,7 @@ const Products = () => {
   const [originalProducts, setOriginalProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
@@ -20,6 +21,7 @@ const Products = () => {
       const response = await axios.get('/api/products');
       setProducts(response.data);
       setOriginalProducts(response.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error:', error);
       alert('An error occurred while fetching products.');
@@ -132,7 +134,7 @@ const Products = () => {
             columns={columns}
             pageSize={5}
             rowsPerPageOptions={[5, 10]}
-            checkboxSelection
+            loading={loading}
           />
         </Box>
       </Box>

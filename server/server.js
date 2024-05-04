@@ -21,8 +21,20 @@ db.run(`
         price_buy REAL,
         price_sell REAL,
         stock INTEGER,
-        description TEXT
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+`);
+
+// Create a trigger to automatically update the `updated_at` timestamp whenever a record is updated
+db.run(`
+    CREATE TRIGGER IF NOT EXISTS update_product_timestamp
+    AFTER UPDATE ON products
+    FOR EACH ROW
+    BEGIN
+        UPDATE products SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+    END;
 `);
 
 const ordersDataBasePath = path.join(__dirname, 'ordersdatabase.db');
@@ -30,11 +42,34 @@ const ordersdb = new sqlite3.Database(ordersDataBasePath);
 
 ordersdb.run(`
     CREATE TABLE IF NOT EXISTS orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER PRIMARY KEY AUTOINCREMENT,
       total_price REAL,
-      order_date TEXT
+      order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-`)
+`);
+
+app.get('/api/orders', (req, res) => {
+  ordersdb.all('SELECT * FROM orders', (err, rows) => {
+    if (err) {
+      console.error('Error fetching products:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
+    }
+  });
+})
+
+const orderDetailsDataBasePath = path.join(__dirname, 'orderdetailsdatabase.db');
+const orderdetailsdb = new sqlite3.Database(orderDetailsDataBasePath);
+
+orderdetailsdb.run(`
+      CREATE TABLE IF NOT EXISTS orderdetails (
+        order_detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER,
+        product_id INTEGER,
+        quantity INTEGER
+      )
+`);
 
 function insertProduct(entry, res) {
   db.run(
@@ -53,6 +88,27 @@ function insertProduct(entry, res) {
       }
     }
   );
+}
+
+function insertOrderDetails(entry) {
+  return new Promise((resolve, reject) => {
+    orderdetailsdb.run(
+      `
+      INSERT INTO orderdetails (order_id, product_id, quantity)
+      VALUES (?, ?, ?)
+    `,
+      [entry.order_id, entry.product_id, entry.quantity, ],
+      (err) => {
+        if (err) {
+          console.error('Error inserting order details:', err);
+          reject(err);
+        } else {
+          console.log('Order details added successfully');
+          resolve();
+        }
+      }
+    );
+  });
 }
 
 app.post('/api/products', (req, res) => {
@@ -76,7 +132,7 @@ app.post('/api/get-paid', async (req, res) => {
       db.run('BEGIN TRANSACTION');
 
       // Loop through each product and update the stock quantity in the products table
-      for (const product of products) {
+      products.forEach(product => {
         db.run('UPDATE products SET stock = stock - ? WHERE id = ?', [product.quantity, product.id], (err) => {
           if (err) {
             console.error('Error updating stock quantity:', err);
@@ -84,22 +140,32 @@ app.post('/api/get-paid', async (req, res) => {
             return res.status(500).json({ error: 'Internal server error' });
           }
         });
-      }
+      });
 
-      // Insert order details into the orders table
-      const date = new Date().toISOString();
+      // Insert the order into the orders table
       ordersdb.run(
-        'INSERT INTO orders (total_price, order_date) VALUES (?, ?)',
-        [totalPrice, date],
-        (err) => {
+        'INSERT INTO orders (total_price, order_date) VALUES (?, CURRENT_TIMESTAMP)',
+        [totalPrice],
+        function (err) {
           if (err) {
             console.error('Error inserting order:', err);
             db.run('ROLLBACK'); // Rollback transaction if there's an error
             return res.status(500).json({ error: 'Internal server error' });
-          } else {
-            db.run('COMMIT'); // Commit transaction if all operations succeed
-            return res.status(200).json({ message: 'Order placed successfully' });
           }
+
+          // Get the last inserted order_id
+          const orderId = this.lastID;
+
+          // Insert order details
+          Promise.all(products.map(product => insertOrderDetails({ ...product, order_id: orderId })))
+            .then(() => {
+              db.run('COMMIT'); // Commit transaction if all operations succeed
+              return res.status(200).json({ message: 'Order placed successfully' });
+            })
+            .catch(error => {
+              console.error('Error inserting order details:', error);
+              return res.status(500).json({ error: 'Internal server error' });
+            });
         }
       );
     });
@@ -108,7 +174,6 @@ app.post('/api/get-paid', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 function updateProduct(entry, res) {
   db.run(

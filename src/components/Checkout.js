@@ -7,7 +7,7 @@ import SearchProductByName from './SearchProductByName';
 import axios from 'axios';
 
 
-const Order = () => {
+const Checkout = () => {
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [benfice, setBenfice] = useState(0);
@@ -66,11 +66,15 @@ const Order = () => {
       // Display an alert popup
       alert('Please make sure all products have a quantity greater than 0.');
       return; // Don't proceed further
+    } else if (products.length === 0) {
+      // Display an alert popup
+      alert('Please add at least one product to make an order.');
+      return; // Don't proceed further
     }
     try {
       // Prepare the order details to send to the backend
       const orderDetails = {
-        products: products.map(product => ({ id: product.id, quantity: product.quantity })), // Send product IDs and quantities
+        products: products.map(product => ({ product_id: product.id, quantity: product.quantity })), // Send product IDs and quantities
         benfice: benfice,
         totalPrice: totalPrice
       };
@@ -104,16 +108,17 @@ const Order = () => {
           <SearchProductByName onSearch={handleSearch} />
           <Box mt={4} sx={{
             display: 'flex',
+            flexDirection: { md: 'row', sm: 'column'},
             justifyContent: 'space-between'
           }}>
-            <Paper elevation={3} sx={{ padding: '20px', width: '49%', display: 'flex', justifyContent: 'center' }}>
+            <Paper elevation={3} sx={{ padding: '20px', width: { md:'49%', sm:'100%' }, display: 'flex', justifyContent: 'center' }}>
               <Typography variant="h6" gutterBottom color="primary">
-                Total : {totalPrice.toFixed(2)} DT
+                {totalPrice.toFixed(2)} DT
               </Typography>
             </Paper>
-            <Button variant="contained" color="primary" onClick={handleGetPaid} sx={{
+            <Button mt={4} variant="contained" color="success" onClick={handleGetPaid} sx={{
               padding: '20px',
-              width: '49%'
+              width: { md:'49%', sm:'100%' }
             }}>Get Paid</Button>
           </Box>
         </Box>
@@ -208,4 +213,4 @@ const Order = () => {
   );
 };
 
-export default Order;
+export default Checkout;

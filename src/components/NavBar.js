@@ -25,11 +25,14 @@ function NavBar() {
             <ListItem component={Link} to="/products" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Products" sx={{ color: 'white' }} />
             </ListItem>
-            <ListItem component={Link} to="/orders" sx={{ textDecoration: 'none' }} >
-              <ListItemText primary="Orders" sx={{ color: 'white' }} />
+            <ListItem component={Link} to="/checkout" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Checkout" sx={{ color: 'white' }} />
             </ListItem>
             <ListItem component={Link} to="/add_product" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Add Product" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+            </ListItem>
+            <ListItem component={Link} to="/orders" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Orders" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
             </ListItem>
           </List>
           <IconButton
@@ -55,11 +58,14 @@ function NavBar() {
           <ListItem component={Link} to="/products" onClick={toggleDrawer}>
             <ListItemText primary="Products" />
           </ListItem>
-          <ListItem component={Link} to="/orders" onClick={toggleDrawer}>
-            <ListItemText primary="Orders" />
+          <ListItem component={Link} to="/checkout" onClick={toggleDrawer}>
+            <ListItemText primary="Checkout" />
           </ListItem>
           <ListItem component={Link} to="/add_product" onClick={toggleDrawer}>
             <ListItemText primary="Add Product" />
+          </ListItem>
+          <ListItem component={Link} to="/orders" onclick={toggleDrawer}>
+            <ListItemText primary="Orders" />
           </ListItem>
         </List>
       </Drawer>
