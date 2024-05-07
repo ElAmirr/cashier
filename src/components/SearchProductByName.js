@@ -33,8 +33,8 @@ const SearchProductByName = ({ onSearch }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Paper elevation={3} sx={{ padding: '20px', maxWidth: '400px', width: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <Paper elevation={3} sx={{ padding: '20px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Typography variant="h6" gutterBottom>
           Search Product by Name
         </Typography>
@@ -46,14 +46,14 @@ const SearchProductByName = ({ onSearch }) => {
           fullWidth
           margin="normal"
         />
-        <Box sx={{ marginTop: '10px' }}>
+        <Box sx={{ marginTop: '10px', width: '100%' }}>
           <List sx= {{
             maxHeight: '280px',
             overflowY: 'scroll'
           }}>
             {searchResults.map((product, index) => (
-              <ListItem key={index} button onClick={() => handleAddToOrder(product)}>
-                <ListItemText primary={product.name} />
+              <ListItem key={index} button onClick={() => handleAddToOrder(product)} >
+                <ListItemText primary={product.name} secondary={`Quantité disponible ${product.stock}`} sx={{ width: '100%' }}/>
               </ListItem>
             ))}
           </List>

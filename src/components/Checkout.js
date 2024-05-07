@@ -1,130 +1,146 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Typography, Box, Paper, Table, TableContainer, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RestoreIcon from '@mui/icons-material/Restore';
 import SearchProductByName from './SearchProductByName';
 import axios from 'axios';
+import ClientMenu from './ClientMenu';
 
 
 const Checkout = () => {
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [benfice, setBenfice] = useState(0);
+
+  useEffect(() => {
+    console.log('Products:', products);
+  }, [products]);
 
   const handleSearch = async (searchResults) => {
+    // Filter out products with stock equal to 0
+    const filteredResults = searchResults.filter(product => product.stock > 0);
+  
+    if (filteredResults.length === 0) {
+      // Show an alert if there are no products with available stock
+      alert('No products with available stock found.');
+      return;
+    }
+  
+    // Update state with filtered products
     setProducts((prevProducts) => {
-      // Filter out products that already exist in the order
-      const filteredResults = searchResults.filter(product => !prevProducts.find(p => p.id === product.id));
-      const newProducts = [...filteredResults.map(product => ({ ...product, quantity: 0 })), ...prevProducts];
+      // Exclude products already in the list
+      const newProducts = [
+        ...filteredResults.map(product => ({ ...product, quantity: 1 })),
+        ...prevProducts.filter(prevProduct => !filteredResults.find(product => product.id === prevProduct.id))
+      ];
+      newProducts.forEach(product => {
+        setTotalPrice((prevTotalPrice) => prevTotalPrice + product.price_sell);
+      });
       return newProducts;
     });
   };
+  
 
   const handleAddProductToOrder = (product) => {
+    // Check if the quantity being added exceeds the available stock
+    if (product.quantity + 1 > product.stock) {
+      alert(`Quantity cannot exceed available stock for ${product.name}`);
+      return;
+    }
+  
     setProducts((prevProducts) => {
       const updatedProducts = prevProducts.map((p) =>
         p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p
       );
-  
-      // Calculate the profit after updating the quantity
-      const updatedProduct = updatedProducts.find((p) => p.id === product.id);
-      const profit = (updatedProduct.price_sell - updatedProduct.price_buy) * updatedProduct.quantity;
-      setBenfice((prevBenfice) => prevBenfice + profit);
-  
       return updatedProducts;
     });
-  
     setTotalPrice((prevTotalPrice) => prevTotalPrice + product.price_sell);
-    console.log(product.price_sell)
-    console.log(product.price_buy)
-    console.log(product.quantity)
-    console.log((product.price_sell - product.price_buy) * (product.quantity))
   };
   
   
-
   const handleResetQuantity = (productId) => {
-    setProducts((prevProducts) => prevProducts.map(p => p.id === productId ? { ...p, quantity: 0 } : p));
-    setTotalPrice((prevTotalPrice) => {
-      const product = products.find(product => product.id === productId);
-      return prevTotalPrice - product.price_sell * product.quantity;
-    });
-  };
+    const product = products.find((product) => product.id === productId);
+    if (!product) return;
+    const priceDifference = product.price_sell * (product.quantity - 1);
 
+    setProducts((prevProducts) =>
+      prevProducts.map((p) =>
+        p.id === productId ? { ...p, quantity: 1 } : p
+      )
+    );
+    setTotalPrice((prevTotalPrice) => prevTotalPrice - priceDifference);
+  };
+  
   const handleRemoveProductFromOrder = (productId) => {
-    const removedProduct = products.find(product => product.id === productId);
-    setBenfice((prevBenfice) => prevBenfice - (removedProduct.price_sell - removedProduct.price_buy) * removedProduct.quantity);
-    setProducts((prevProducts) => prevProducts.filter(product => product.id !== productId));
+    const removedProduct = products.find((product) => product.id === productId);
+    setProducts((prevProducts) =>
+      prevProducts.filter((product) => product.id !== productId)
+    );
     setTotalPrice((prevTotalPrice) => prevTotalPrice - removedProduct.price_sell * removedProduct.quantity);
   };
 
   const handleGetPaid = async () => {
-    // Check if any product quantity is 0
     const hasZeroQuantity = products.some(product => product.quantity === 0);
     if (hasZeroQuantity) {
-      // Display an alert popup
       alert('Please make sure all products have a quantity greater than 0.');
-      return; // Don't proceed further
+      return;
     } else if (products.length === 0) {
-      // Display an alert popup
       alert('Please add at least one product to make an order.');
-      return; // Don't proceed further
+      return;
     }
     try {
-      // Prepare the order details to send to the backend
       const orderDetails = {
-        products: products.map(product => ({ product_id: product.id, quantity: product.quantity })), // Send product IDs and quantities
-        benfice: benfice,
+        products: products.map(product => ({ product_id: product.id, quantity: product.quantity })),
         totalPrice: totalPrice
       };
-  
-      // Send a POST request to the backend endpoint
       const response = await axios.post('/api/get-paid', orderDetails);
-  
-      // Handle the response
-      console.log(response.data); // Assuming the response contains a success message
-      // Reload the page after successful payment
-    window.location.reload();
+      console.log(response.data);
+      window.location.reload();
     } catch (error) {
-      console.error('Error:', error); // Handle any errors
+      console.error('Error:', error);
     }
   };
-  
-  
 
   return (
     <div>
       <Box mt={4} sx={{ 
         width: '100vw',
         display: 'flex',
-        flexDirection: { xs: 'column', sm: 'row' },
-        alignItems: { xs: 'space-evenly', sm: 'flex-start' },
-        justifyContent: { xs:'space-between', sm:'space-evenly'}
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { xs: 'space-evenly', md: 'flex-start' },
+        justifyContent: { xs:'space-between', md:'space-evenly'}
       }}>
         <Box sx={{
-          width: { xs: '100%', sm:'30%' },
+          width: { xs: '100%', md:'30%' },
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
           }}>
           <SearchProductByName onSearch={handleSearch} />
-          <Box mt={4} sx={{
+          <ClientMenu />
+  
+          <Box sx={{
+            width: '100%',
             display: 'flex',
-            flexDirection: { md: 'row', sm: 'column'},
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+
           }}>
-            <Paper elevation={3} sx={{ padding: '20px', width: { md:'49%', sm:'100%' }, display: 'flex', justifyContent: 'center' }}>
+            <Paper elevation={3} sx={{ padding: '20px', width: '49%', display: 'flex', justifyContent: 'center' }}>
               <Typography variant="h6" gutterBottom color="primary">
                 {totalPrice.toFixed(2)} DT
               </Typography>
             </Paper>
             <Button mt={4} variant="contained" color="success" onClick={handleGetPaid} sx={{
-              padding: '20px',
-              width: { md:'49%', sm:'100%' }
-            }}>Get Paid</Button>
+              padding: '10px',
+              width: '49%'
+            }}>Get Paid
+            </Button>
           </Box>
         </Box>
         <Box sx={{ 
-          width: { xs: '100', sm:'60%' },
-          marginTop: {xs: '20px', sm: '0'}
+          width: { xs: '100', md:'60%' },
+          marginTop: {md: '0', xs:'20px'}
         }}>
           <Box>
             <TableContainer component={Paper}>
@@ -206,7 +222,6 @@ const Checkout = () => {
               </Table>
             </TableContainer>
           </Box>
-          
         </Box>
       </Box>
     </div>

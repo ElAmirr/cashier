@@ -6,6 +6,8 @@ import AddProductForm from './components/AddProductForm';
 import Products from './components/Products';
 import Checkout from './components/Checkout';
 import Orders from './components/Orders';
+import Clients from './components/Clients';
+
 
 
 const App = () => {
@@ -17,6 +19,7 @@ const App = () => {
         <Route path="/products" component={Products} />
         <Route path="/checkout" component={Checkout} />
         <Route path="/add_product" component={AddProductForm} />
+        <Route path="/clients" component={Clients} />
         <Route path="/orders" component={Orders} />
       </Switch>
     </div>

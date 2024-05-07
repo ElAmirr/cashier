@@ -37,6 +37,52 @@ db.run(`
     END;
 `);
 
+const clientDatabasePath = path.join(__dirname, 'database.db');
+const clientdb = new sqlite3.Database(clientDatabasePath);
+
+clientdb.run(`
+      CREATE TABLE IF NOT EXISTS clients (
+        client_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_name TEXT,
+        balance REAL 
+      )
+`)
+
+app.get('/api/clients', (req, res) => {
+  clientdb.all('SELECT * FROM clients', (err, rows) => {
+    if (err) {
+      console.error('Error fetching clients:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
+    }
+  });
+})
+
+// Express Server
+
+app.post('/api/clients', (req, res) => {
+  const newClient = req.body;
+
+  clientdb.run(
+    `
+    INSERT INTO clients (client_name, balance)
+    VALUES (?, ?)
+  `,
+    [newClient.client_name, newClient.balance],
+    (err) => {
+      if (err) {
+        console.error('Error adding new client:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        console.log('New client added successfully');
+        res.json({ success: true, message: 'New client added successfully' });
+      }
+    }
+  );
+});
+
+
 const ordersDataBasePath = path.join(__dirname, 'ordersdatabase.db');
 const ordersdb = new sqlite3.Database(ordersDataBasePath);
 
@@ -44,6 +90,8 @@ ordersdb.run(`
     CREATE TABLE IF NOT EXISTS orders (
       order_id INTEGER PRIMARY KEY AUTOINCREMENT,
       total_price REAL,
+      client_id INTEGER,
+      payment BOOLLEAN
       order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 `);
@@ -59,10 +107,7 @@ app.get('/api/orders', (req, res) => {
   });
 })
 
-const orderDetailsDataBasePath = path.join(__dirname, 'orderdetailsdatabase.db');
-const orderdetailsdb = new sqlite3.Database(orderDetailsDataBasePath);
-
-orderdetailsdb.run(`
+ordersdb.run(`
       CREATE TABLE IF NOT EXISTS orderdetails (
         order_detail_id INTEGER PRIMARY KEY AUTOINCREMENT,
         order_id INTEGER,
@@ -70,6 +115,35 @@ orderdetailsdb.run(`
         quantity INTEGER
       )
 `);
+
+app.get('/api/orders/:orderId/details', (req, res) => {
+  const orderId = req.params.orderId;
+  ordersdb.all('SELECT * FROM orderdetails WHERE order_id = ?', [orderId], (err, rows) => {
+    if (err) {
+      console.error('Error fetching order details:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+app.get('/api/products/:productId', (req, res) => {
+  const productId = req.params.productId;
+  db.get('SELECT * FROM products WHERE id = ?', [productId], (err, row) => {
+    if (err) {
+      console.error('Error fetching product details:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (row) {
+        res.json(row);
+      } else {
+        res.status(404).json({ error: 'Product not found' });
+      }
+    }
+  });
+});
+
 
 function insertProduct(entry, res) {
   db.run(
@@ -92,7 +166,7 @@ function insertProduct(entry, res) {
 
 function insertOrderDetails(entry) {
   return new Promise((resolve, reject) => {
-    orderdetailsdb.run(
+    ordersdb.run(
       `
       INSERT INTO orderdetails (order_id, product_id, quantity)
       VALUES (?, ?, ?)
@@ -133,7 +207,7 @@ app.post('/api/get-paid', async (req, res) => {
 
       // Loop through each product and update the stock quantity in the products table
       products.forEach(product => {
-        db.run('UPDATE products SET stock = stock - ? WHERE id = ?', [product.quantity, product.id], (err) => {
+        db.run('UPDATE products SET stock = stock - ? WHERE id = ?', [product.quantity, product.product_id], (err) => {
           if (err) {
             console.error('Error updating stock quantity:', err);
             db.run('ROLLBACK'); // Rollback transaction if there's an error
@@ -174,6 +248,7 @@ app.post('/api/get-paid', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 function updateProduct(entry, res) {
   db.run(
@@ -272,6 +347,33 @@ app.get('/api/products', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+// Save server start time to database
+ordersdb.run(
+  `
+  CREATE TABLE IF NOT EXISTS app_start_time (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP
+  )
+`, (err) => {
+  if (err) {
+    console.error('Error creating app_start_time table:', err);
+  } else {
+    // Insert app start time
+    ordersdb.run(
+      `
+      INSERT INTO app_start_time (start_time) VALUES (CURRENT_TIMESTAMP)
+    `, (err) => {
+      if (err) {
+        console.error('Error inserting app start time:', err);
+      } else {
+        console.log('Server start time inserted successfully');
+      }
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

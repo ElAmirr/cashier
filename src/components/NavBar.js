@@ -1,23 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemText } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 
-
 function NavBar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    // Clear the interval on component unmount
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleDrawer = () => {
     setIsDrawerOpen(!isDrawerOpen);
   };
 
+  // Format the current time to "Month Day Hour:Minute"
+  const formattedTime = currentTime.toLocaleString('default', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
     <div>
       <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Inventory App
-          </Typography>
+        <Toolbar sx={{ display:"flex", justifyContent:"space-between" }}>
           <List sx={{ display: { sm:'flex', xs: 'none' } }}>
             <ListItem component={Link} to="/" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Home" sx={{ color: 'white' }} />
@@ -31,10 +45,16 @@ function NavBar() {
             <ListItem component={Link} to="/add_product" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Add Product" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
             </ListItem>
+            <ListItem component={Link} to="/clients" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Clients" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+            </ListItem>
             <ListItem component={Link} to="/orders" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Orders" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
             </ListItem>
           </List>
+          <Typography variant="h6" component="div" sx={{ }}>
+            {formattedTime}
+          </Typography>
           <IconButton
             edge="start"
             color="inherit"
