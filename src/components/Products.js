@@ -73,7 +73,17 @@ const Products = () => {
     { field: 'name', headerName: 'Product', width: 120 },
     { field: 'price_buy', headerName: 'Prix Dachat', type: 'number', width: 100 },
     { field: 'price_sell', headerName: 'Prix De Vante', type: 'number', width: 100 },
-    { field: 'stock', headerName: 'Stock', type: 'number', width: 80 },
+    { 
+      field: 'stock', 
+      headerName: 'Stock', 
+      type: 'number', 
+      width: 80,
+      renderCell: (params) => (
+        <span style={{ color: params.value <= 5 ? 'red' : 'green' }}>
+          { params.value }
+        </span>
+      ),
+    },
     { field: 'description', headerName: 'Description', width: 100 },
     {
       field: 'edit',

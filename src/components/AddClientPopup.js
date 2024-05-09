@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField, Button } from '@mui/material';
 
-const AddClientPopup = ({ open, handleClose, handleSave, selectedProduct, setSelectedProduct }) => {
+const AddClientPopup = ({ open, handleClose, handleSave, newClient, setNewClient }) => {
   return (
     <Dialog open={open} onClose={handleClose}>
       <DialogTitle>Add client details</DialogTitle>
@@ -16,17 +16,17 @@ const AddClientPopup = ({ open, handleClose, handleSave, selectedProduct, setSel
           label="Client Name"
           type="text"
           fullWidth
-          value={selectedProduct?.name || ''}
-          onChange={(e) => setSelectedProduct({ ...selectedProduct, name: e.target.value })}
+          value={newClient?.client_name || ''}
+          onChange={(e) => setNewClient({ ...newClient, client_name: e.target.value })}
         />
         <TextField
           margin="dense"
           id="client_number"
-          label="client_number"
+          label="Client Number"
           type="number"
           fullWidth
-          value={selectedProduct?.price_buy || ''}
-          onChange={(e) => setSelectedProduct({ ...selectedProduct, price_buy: e.target.value })}
+          value={newClient?.client_number || ''}
+          onChange={(e) => setNewClient({ ...newClient, client_number: e.target.value })}
         />
       </DialogContent>
       <DialogActions>

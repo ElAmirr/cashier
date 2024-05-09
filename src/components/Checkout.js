@@ -6,11 +6,14 @@ import RestoreIcon from '@mui/icons-material/Restore';
 import SearchProductByName from './SearchProductByName';
 import axios from 'axios';
 import ClientMenu from './ClientMenu';
+import PaymentMethodSelector from './PaymentMethodSelector';
 
 
 const Checkout = () => {
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedClient, setSelectedClient] = useState(null); // State to store selected client ID
+  const [paymentMethod, setPaymentMethod] = useState(null); // State to store selected payment method
 
   useEffect(() => {
     console.log('Products:', products);
@@ -79,8 +82,20 @@ const Checkout = () => {
     setTotalPrice((prevTotalPrice) => prevTotalPrice - removedProduct.price_sell * removedProduct.quantity);
   };
 
+  const handleClientSelect = (clientId) => {
+    // Update selected client ID state
+    setSelectedClient(clientId);
+    console.log('Selected client ID:', clientId);
+  };  
+
+  const handlePaymentMethodSelect = (paymentMethod) => {
+    console.log('Selected payment method:', paymentMethod);
+    setPaymentMethod(paymentMethod);
+  };
+
   const handleGetPaid = async () => {
-    const hasZeroQuantity = products.some(product => product.quantity === 0);
+    // Check if any product has zero quantity
+    const hasZeroQuantity = products.some((product) => product.quantity === 0);
     if (hasZeroQuantity) {
       alert('Please make sure all products have a quantity greater than 0.');
       return;
@@ -88,13 +103,23 @@ const Checkout = () => {
       alert('Please add at least one product to make an order.');
       return;
     }
+  
     try {
       const orderDetails = {
-        products: products.map(product => ({ product_id: product.id, quantity: product.quantity })),
-        totalPrice: totalPrice
+        clientId: selectedClient, // Include selected client ID
+        products: products.map((product) => ({
+          product_id: product.id,
+          quantity: product.quantity,
+        })),
+        totalPrice: totalPrice,
+        paymentMethod: paymentMethod, // Pass payment method
       };
+    
+      // Perform the POST request
       const response = await axios.post('/api/get-paid', orderDetails);
       console.log(response.data);
+    
+      // After the POST request is completed, reload the page
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
@@ -118,7 +143,9 @@ const Checkout = () => {
           gap: '20px'
           }}>
           <SearchProductByName onSearch={handleSearch} />
-          <ClientMenu />
+          <ClientMenu onSelectClient={handleClientSelect} />
+          <PaymentMethodSelector onSelectPaymentMethod={handlePaymentMethodSelect} />
+
   
           <Box sx={{
             width: '100%',

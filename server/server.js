@@ -37,16 +37,17 @@ db.run(`
     END;
 `);
 
-const clientDatabasePath = path.join(__dirname, 'database.db');
+const clientDatabasePath = path.join(__dirname, 'clientdatabase.db');
 const clientdb = new sqlite3.Database(clientDatabasePath);
 
 clientdb.run(`
-      CREATE TABLE IF NOT EXISTS clients (
+    CREATE TABLE IF NOT EXISTS clients (
         client_id INTEGER PRIMARY KEY AUTOINCREMENT,
         client_name TEXT,
+        client_number INTEGER,
         balance REAL 
-      )
-`)
+    )
+`);
 
 app.get('/api/clients', (req, res) => {
   clientdb.all('SELECT * FROM clients', (err, rows) => {
@@ -54,22 +55,33 @@ app.get('/api/clients', (req, res) => {
       console.error('Error fetching clients:', err);
       res.status(500).json({ error: 'Internal server error' });
     } else {
-      res.json(rows);
+      res.json(rows); // Return clients data
     }
   });
-})
+});
 
-// Express Server
+app.get('/api/clients/:client_name', (req, res) => {
+  const clientName = req.params.client_name;
+  clientdb.all('SELECT * FROM clients WHERE client_name = ?', clientName, (err, rows) => {
+    if (err) {
+      console.error('Error fetching client details:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows); // Return client details
+    }
+  });
+});
+
 
 app.post('/api/clients', (req, res) => {
   const newClient = req.body;
 
   clientdb.run(
     `
-    INSERT INTO clients (client_name, balance)
+    INSERT INTO clients (client_name, client_number)
     VALUES (?, ?)
   `,
-    [newClient.client_name, newClient.balance],
+    [newClient.client_name, newClient.client_number],
     (err) => {
       if (err) {
         console.error('Error adding new client:', err);
@@ -82,6 +94,24 @@ app.post('/api/clients', (req, res) => {
   );
 });
 
+app.delete('/api/clients/:client_id', async(req, res) => {
+  try {
+    const clientId = req.params.client_id;
+    const result = await clientdb.run(
+      `
+        DELETE FROM clients WHERE client_id = ?
+      `, [clientId]
+    );
+    if (result.changes === 0) {
+      res.status(404).json({ error: 'Product not found' });
+    } else {
+      res.json({ success: true, message: 'Product deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+})
 
 const ordersDataBasePath = path.join(__dirname, 'ordersdatabase.db');
 const ordersdb = new sqlite3.Database(ordersDataBasePath);
@@ -91,7 +121,7 @@ ordersdb.run(`
       order_id INTEGER PRIMARY KEY AUTOINCREMENT,
       total_price REAL,
       client_id INTEGER,
-      payment BOOLLEAN
+      payment BOOLLEAN,
       order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 `);
@@ -198,6 +228,8 @@ app.post('/api/products', (req, res) => {
 app.post('/api/get-paid', async (req, res) => {
   try {
     const orderDetails = req.body;
+    const clientId = orderDetails.clientId || 1;
+    const paymentMethod = orderDetails.paymentMethod || 1; // Retrieve payment method
     const products = orderDetails.products;
     const totalPrice = orderDetails.totalPrice;
 
@@ -218,8 +250,8 @@ app.post('/api/get-paid', async (req, res) => {
 
       // Insert the order into the orders table
       ordersdb.run(
-        'INSERT INTO orders (total_price, order_date) VALUES (?, CURRENT_TIMESTAMP)',
-        [totalPrice],
+        'INSERT INTO orders (total_price, client_id, payment, order_date) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
+        [totalPrice, clientId, paymentMethod],
         function (err) {
           if (err) {
             console.error('Error inserting order:', err);

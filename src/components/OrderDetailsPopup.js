@@ -86,12 +86,13 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
       <DialogTitle>{`Total: ${order.total_price}`}</DialogTitle>  
       </DialogContent>
       <DialogActions>
-        <Button onClick={handlePrint} color="primary" className="print-only">
-          Print
-        </Button>
-        <Button onClick={onClose} color="primary" className="print-only">
+      <Button onClick={onClose} color="primary" variant='outlined' className="print-only">
           Close
         </Button>
+        <Button onClick={handlePrint}  color="primary" variant="contained" className="print-only">
+          Print
+        </Button>
+        
       </DialogActions>
     </Dialog>
   );

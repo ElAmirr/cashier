@@ -37,10 +37,24 @@ const Orders = () => {
     setOpenPopup(false); // Close the popup
   };
 
-
   const columns = [
     { field: 'order_id', headerName: 'Order ID', width: 120 },
-    { field: 'total_price', headerName: 'Total Price', type: 'number', width: 120 },
+    { 
+      field: 'total_price', 
+      headerName: 'Total Price',  
+      width: 120,
+      renderCell: (params) => (
+        <span>{`${params.value} TND`}</span>
+      ),
+    },
+    { 
+      field: 'payment', 
+      headerName: 'Payment State', 
+      width: 120,
+      renderCell: (params) => (
+        <span style={{ color: params.value === 1 ? 'green' : 'red' }}>{params.value === 1 ? 'Paid' : 'Not Paid'}</span>
+      ),
+    },
     { field: 'order_date', headerName: 'Order Date', width: 150 },
     {
       field: 'actions',

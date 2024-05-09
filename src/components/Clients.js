@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
-import AddClientPopup from './AddClientPopup'; // Import the AddClientPopup component
+import AddClientPopup from './AddClientPopup';
 import ClientMenu from './ClientMenu';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
-  const [originalClients, setOriginalClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [newClient, setNewClient] = useState({}); // State variable to store new client data
+  const [newClient, setNewClient] = useState({ client_name: '', client_number: '' });
 
   useEffect(() => {
     fetchData();
@@ -20,34 +18,21 @@ const Clients = () => {
   const fetchData = async () => {
     try {
       const response = await axios.get('/api/clients');
-      setClients(response.data);
-      setOriginalClients(response.data);
+      const clientsWithId = response.data.map((client, index) => ({
+        ...client,
+        id: index + 1 // Assuming index starts from 0
+      }));
+      setClients(clientsWithId);
       setLoading(false);
     } catch (error) {
       console.error('Error:', error);
       alert('An error occurred while fetching clients.');
     }
   };
+  
 
   const handleEdit = (client) => {
-    setSelectedClient(client);
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const handleSave = async () => {
-    try {
-      await axios.put(`/api/clients/${selectedClient.client_id}`, selectedClient);
-      console.log('Client updated successfully');
-      setOpen(false);
-      fetchData();
-    } catch (error) {
-      console.error('Error updating client:', error);
-      alert('An error occurred while updating the client.');
-    }
+    // Implement edit functionality
   };
 
   const handleDelete = async (clientId) => {
@@ -62,26 +47,32 @@ const Clients = () => {
   };
 
   const handleAddClient = () => {
-    setOpen(true); // Open the popup dialog for adding a new client
+    setOpen(true);
   };
 
   const handleNewClientSave = async () => {
     try {
-      await axios.post('/api/clients', newClient); // Send a POST request to save the new client data
+      await axios.post('/api/clients', newClient);
       console.log('New client added successfully');
-      setOpen(false); // Close the popup dialog
-      fetchData(); // Refresh the client list
-      setNewClient({}); // Reset the new client data
+      setOpen(false);
+      fetchData();
+      setNewClient({ client_name: '', client_number: '' });
     } catch (error) {
       console.error('Error adding new client:', error);
       alert('An error occurred while adding the new client.');
     }
   };
 
+  const handleClientSelect = (clientName) => {
+    // Handle client selection, e.g., update state or perform actions
+  };
+  
+
   const columns = [
     { field: 'client_id', headerName: 'ID', width: 50 },
     { field: 'client_name', headerName: 'Client Name', width: 200 },
     { field: 'balance', headerName: 'Balance', type: 'number', width: 150 },
+    { field: 'client_number', headerName: 'Client Number', type: 'number', width: 200 },
     {
       field: 'edit',
       headerName: 'Edit',
@@ -126,12 +117,12 @@ const Clients = () => {
             display: 'flex',
             flexDirection: 'column',
         }}>
-            <ClientMenu />
+            <ClientMenu onSelect={handleClientSelect} />
             <Button
               variant="contained"
               color="primary"
               onClick={handleAddClient}
-              sx={{ padding: '20px', width: '20%' }}
+              sx={{ padding: '20px', width: '100%', marginTop: '20px' }}
             >
               Add New Client
             </Button>
@@ -146,13 +137,12 @@ const Clients = () => {
           />
         </Box>
       </Box>
-      {/* Render the AddClientPopup component */}
       <AddClientPopup
         open={open}
-        handleClose={handleClose}
+        handleClose={() => setOpen(false)}
         handleSave={handleNewClientSave}
-        selectedProduct={newClient} // Pass the new client data to the popup
-        setSelectedProduct={setNewClient}
+        newClient={newClient} // Pass newClient instead of selectedProduct
+        setNewClient={setNewClient} // Pass setNewClient instead of setSelectedProduct
       />
     </div>
   );
