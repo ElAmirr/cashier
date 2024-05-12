@@ -71,8 +71,18 @@ const Products = () => {
   const columns = [
     { field: 'id', headerName: 'ID', width: 50 },
     { field: 'name', headerName: 'Product', width: 120 },
-    { field: 'price_buy', headerName: 'Prix Dachat', type: 'number', width: 100 },
-    { field: 'price_sell', headerName: 'Prix De Vante', type: 'number', width: 100 },
+    { 
+      field: 'price_buy', headerName: 'Prix Dachat', type: 'number', width: 100,
+      renderCell: (params) => (
+        <span>{`${params.value} TND`}</span>
+      ),
+    },
+    { 
+      field: 'price_sell', headerName: 'Prix De Vante', type: 'number', width: 100,
+      renderCell: (params) => (
+        <span>{`${params.value} TND`}</span>
+      ),
+    },
     { 
       field: 'stock', 
       headerName: 'Stock', 

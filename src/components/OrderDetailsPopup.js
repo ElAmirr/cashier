@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, Button } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, Button, Typography } from '@mui/material';
 
 const OrderDetailsPopup = ({ open, order, onClose }) => {
   const [orderDetails, setOrderDetails] = useState([]);
@@ -67,8 +67,10 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <style>{printStyles}</style> {/* Apply the print styles */}
-      <DialogTitle>{`Order ID: ${order.order_id} - Date: ${order.order_date}`}</DialogTitle>
+      <DialogTitle>{`Order - Client ID ${order.order_id} ${order.client_id}- Date: ${order.order_date}`}</DialogTitle>
       <DialogContent>
+      <Typography variant="h6">Client Name: {order.clientData && order.clientData[0] && order.clientData[0].client_name}</Typography>
+
         <List>
           <ListItemText primary={`QTY DESC AMT`} />
           {productDetails.map((detail, index) => (

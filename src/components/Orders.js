@@ -3,6 +3,7 @@ import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
 import OrderDetailsPopup from './OrderDetailsPopup'; // Import the OrderDetailsPopup component
+import Report from './Report';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -28,8 +29,23 @@ const Orders = () => {
     }
   };
 
+  const fetchClientData = async (clientId) => {
+    try {
+      const response = await axios.get(`/api/clients/${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client data:', error);
+      return null;
+    }
+  };
+
   const handleOrderDetailsClick = async (order) => {
     setSelectedOrder(order);
+    const clientData = await fetchClientData(order.client_id);
+    setSelectedOrder({
+      ...order,
+      clientData: clientData
+    });
     setOpenPopup(true); // Open the popup when clicking on an order
   };
 
@@ -74,15 +90,26 @@ const Orders = () => {
     },
   ];
 
+   // Inline styles for printing
+   const printStyles = `
+   @media print {
+     .print-only {
+       display: none;
+     }
+   }
+ `;
+
   return (
     <div>
+      <style>{printStyles}</style> {/* Apply the print styles */}
       <Box mt={4} sx={{
         width: '100vw',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         justifyContent: 'space-around'
       }}>
-        <Box style={{ height: 560, minWidth: '60%' }}>
+        <Report />
+        <Box className="print-only" style={{ height: 560, minWidth: '60%' }}>
           <DataGrid
             rows={orders}
             columns={columns}

@@ -8,15 +8,16 @@ import axios from 'axios';
 import ClientMenu from './ClientMenu';
 import PaymentMethodSelector from './PaymentMethodSelector';
 
-
 const Checkout = () => {
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [selectedClient, setSelectedClient] = useState(null); // State to store selected client ID
-  const [paymentMethod, setPaymentMethod] = useState(null); // State to store selected payment method
+  const [selectedClient, setSelectedClient] = useState(1); // State to store selected client ID
+  const [paymentMethod, setPaymentMethod] = useState(true); // State to store selected payment method
 
   useEffect(() => {
-    console.log('Products:', products);
+    // Calculate total price whenever products change
+    const totalPrice = products.reduce((total, product) => total + (product.price_sell * product.quantity), 0);
+    setTotalPrice(totalPrice);
   }, [products]);
 
   const handleSearch = async (searchResults) => {
@@ -36,13 +37,9 @@ const Checkout = () => {
         ...filteredResults.map(product => ({ ...product, quantity: 1 })),
         ...prevProducts.filter(prevProduct => !filteredResults.find(product => product.id === prevProduct.id))
       ];
-      newProducts.forEach(product => {
-        setTotalPrice((prevTotalPrice) => prevTotalPrice + product.price_sell);
-      });
       return newProducts;
     });
   };
-  
 
   const handleAddProductToOrder = (product) => {
     // Check if the quantity being added exceeds the available stock
@@ -57,39 +54,28 @@ const Checkout = () => {
       );
       return updatedProducts;
     });
-    setTotalPrice((prevTotalPrice) => prevTotalPrice + product.price_sell);
   };
-  
-  
-  const handleResetQuantity = (productId) => {
-    const product = products.find((product) => product.id === productId);
-    if (!product) return;
-    const priceDifference = product.price_sell * (product.quantity - 1);
 
+  const handleResetQuantity = (productId) => {
     setProducts((prevProducts) =>
       prevProducts.map((p) =>
         p.id === productId ? { ...p, quantity: 1 } : p
       )
     );
-    setTotalPrice((prevTotalPrice) => prevTotalPrice - priceDifference);
   };
   
   const handleRemoveProductFromOrder = (productId) => {
-    const removedProduct = products.find((product) => product.id === productId);
     setProducts((prevProducts) =>
       prevProducts.filter((product) => product.id !== productId)
     );
-    setTotalPrice((prevTotalPrice) => prevTotalPrice - removedProduct.price_sell * removedProduct.quantity);
   };
 
   const handleClientSelect = (clientId) => {
     // Update selected client ID state
     setSelectedClient(clientId);
-    console.log('Selected client ID:', clientId);
   };  
 
   const handlePaymentMethodSelect = (paymentMethod) => {
-    console.log('Selected payment method:', paymentMethod);
     setPaymentMethod(paymentMethod);
   };
 
@@ -105,6 +91,14 @@ const Checkout = () => {
     }
   
     try {
+      // Calculate total cost of products
+      const totalCost = products.reduce((total, product) => total + (product.price_buy * product.quantity), 0);
+      
+      // Calculate profit
+      const profit = totalPrice - totalCost;
+      
+      console.log('Profit:', profit); // Log the profit here
+  
       const orderDetails = {
         clientId: selectedClient, // Include selected client ID
         products: products.map((product) => ({
@@ -113,18 +107,27 @@ const Checkout = () => {
         })),
         totalPrice: totalPrice,
         paymentMethod: paymentMethod, // Pass payment method
+        profit: profit // Pass profit
       };
     
       // Perform the POST request
       const response = await axios.post('/api/get-paid', orderDetails);
       console.log(response.data);
-    
+  
+      // Update stock for each product
+      products.forEach(async (product) => {
+        const updatedStock = product.stock - product.quantity;
+        await axios.put(`/api/products/${product.id}`, { ...product, stock: updatedStock });
+      });
+  
       // After the POST request is completed, reload the page
       window.location.reload();
     } catch (error) {
       console.error('Error:', error);
     }
   };
+  
+  
 
   return (
     <div>

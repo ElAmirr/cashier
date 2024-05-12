@@ -7,12 +7,14 @@ import Products from './components/Products';
 import Checkout from './components/Checkout';
 import Orders from './components/Orders';
 import Clients from './components/Clients';
+import FullScreen from './components/FullScreen';
 
 
 
 const App = () => {
   return (
     <div className="App">
+      <FullScreen />
       <NavBar />
       <Switch>
         <Route exact path="/" component={Home} />

@@ -4,12 +4,17 @@ import { DataGrid } from '@mui/x-data-grid';
 import { Box, Button } from '@mui/material';
 import AddClientPopup from './AddClientPopup';
 import ClientMenu from './ClientMenu';
+import ClientOrdersPopup from './ClientOrdersPopup'; // Import the new component
+
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newClient, setNewClient] = useState({ client_name: '', client_number: '' });
+  const [selectedClient, setSelectedClient] = useState(null); // State variable to store selected client
+  const [clientOrders, setClientOrders] = useState([]); // State variable to store client orders
+  const [showOrdersPopup, setShowOrdersPopup] = useState(false); // State variable to control the visibility of orders popup
 
   useEffect(() => {
     fetchData();
@@ -31,9 +36,23 @@ const Clients = () => {
   };
   
 
-  const handleEdit = (client) => {
-    // Implement edit functionality
+  const handlePayCredit = (client) => {
+    // Set selected client and fetch orders related to this client
+    setSelectedClient(client);
+    fetchClientOrders(client.client_id);
   };
+
+  const fetchClientOrders = async (clientId) => {
+    try {
+      const response = await axios.get(`/api/orders/client/${clientId}?payment=false`); // Assuming endpoint to fetch client orders by client ID and payment status
+      setClientOrders(response.data);
+      setShowOrdersPopup(true); // Show the orders popup
+    } catch (error) {
+      console.error('Error fetching client orders:', error);
+      alert('An error occurred while fetching client orders.');
+    }
+  };
+
 
   const handleDelete = async (clientId) => {
     try {
@@ -74,17 +93,17 @@ const Clients = () => {
     { field: 'balance', headerName: 'Balance', type: 'number', width: 150 },
     { field: 'client_number', headerName: 'Client Number', type: 'number', width: 200 },
     {
-      field: 'edit',
-      headerName: 'Edit',
-      width: 100,
+      field: 'pay_credit',
+      headerName: 'Pay Credit',
+      width: 120,
       sortable: false,
       renderCell: (params) => (
         <Button
           variant="contained"
-          color="secondary"
-          onClick={() => handleEdit(params.row)}
+          color="success"
+          onClick={() => handlePayCredit(params.row)}
         >
-          Edit
+          Pay Credit
         </Button>
       ),
     },
@@ -144,6 +163,17 @@ const Clients = () => {
         newClient={newClient} // Pass newClient instead of selectedProduct
         setNewClient={setNewClient} // Pass setNewClient instead of setSelectedProduct
       />
+
+      {/* Orders Popup */}
+      {showOrdersPopup && (
+        <ClientOrdersPopup
+          open={showOrdersPopup}
+          handleClose={() => setShowOrdersPopup(false)}
+          client={selectedClient}
+          orders={clientOrders}
+        />
+      )}
+      
     </div>
   );
 };
