@@ -4,10 +4,11 @@ import { Box, TextField, Typography, Button } from '@mui/material';
 
 const Report = () => {
   const [totalSales, setTotalSales] = useState(0);
-  const [profit, setProfit] = useState(0);
   const [cash, setCash] = useState(0);
   const [credit, setCredit] = useState(0);
   const [cashProfit, setCashProfit] = useState(0);
+  const [creditPaid, setCreditPaid] = useState(0);
+  const [creditPaidProfit, setCreditPaidProfit] = useState(0);
   const [startDate, setStartDate] = useState(); // Default to today's date
   const [startTime, setStartTime] = useState();
   const [endDate, setEndDate] = useState(); // Default to today's date
@@ -44,10 +45,11 @@ const Report = () => {
         });
 
         setTotalSales(reportResponse.data.total_sales);
-        setProfit(reportResponse.data.profit);
         setCash(reportResponse.data.cash);
         setCredit(reportResponse.data.credit);
         setCashProfit(reportResponse.data.cash_profit); // Fetch cash_profit data
+        setCreditPaid(reportResponse.data.credit_paid);
+        setCreditPaidProfit(reportResponse.data.credit_paid_profit);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -71,7 +73,7 @@ const Report = () => {
  `;
 
   return (
-    <Box sx={{
+    <Box mt={2} sx={{
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -124,10 +126,11 @@ const Report = () => {
         />
       </Box>
       <Typography mt={4}>Total Sales: {totalSales} DT</Typography>
-      <Typography mt={2}>Profit: {profit} DT</Typography>
-      <Typography mt={2}>Cash: {cash} DT</Typography>
+      <Typography mt={2}>Total Cash : {cash + creditPaid} DT</Typography>
       <Typography mt={2}>Cash Profit: {cashProfit} DT</Typography> {/* Display cash profit */}
       <Typography mt={2}>Credit: {credit} DT</Typography>
+      <Typography mt={2}>Credit Paid: {creditPaid} DT</Typography>
+      <Typography mt={2}>Credit Paid Profit: {creditPaidProfit} DT</Typography>
       <Button onClick={handlePrint}  color="primary" variant="contained" className="print-only">
           Print
       </Button>

@@ -22,8 +22,8 @@ db.run(`
         price_sell REAL,
         stock INTEGER,
         description TEXT,
-        created_at TIMESTAMP DEFAULT (DATETIME('now', '+1 hour')) ,
-        updated_at TIMESTAMP DEFAULT (DATETIME('now', '+1 hour'))
+        created_at TIMESTAMP DEFAULT (DATETIME('now', 'utc')) ,
+        updated_at TIMESTAMP DEFAULT (DATETIME('now', 'utc'))
     )
 `);
 
@@ -40,6 +40,7 @@ db.run(`
 const clientDatabasePath = path.join(__dirname, 'clientdatabase.db');
 const clientdb = new sqlite3.Database(clientDatabasePath);
 
+// Create the clients table if it doesn't exist
 clientdb.run(`
     CREATE TABLE IF NOT EXISTS clients (
         client_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,31 +48,33 @@ clientdb.run(`
         client_number INTEGER,
         balance REAL 
     )
-`);
-
-// Hard code data to be inserted
-const clientData = {
-  client_name: "passager",
-  client_number: "00 000 000",
-  balance: 0 // Assuming the balance should be initialized to 0
-};
-
-// Insert data into the clients table
-clientdb.run(
-  `
-  INSERT INTO clients (client_name, client_number, balance)
-  VALUES (?, ?, ?)
-`,
-  [clientData.client_name, clientData.client_number, clientData.balance],
-  (err) => {
+`, (err) => {
     if (err) {
-      console.error('Error adding new client:', err);
+        console.error("Error creating clients table:", err);
     } else {
-      console.log('New client added successfully');
+        console.log("Clients table created successfully.");
+        
+        // Check if the client data already exists
+        clientdb.get("SELECT * FROM clients WHERE client_name = 'passager' AND client_number = '00000000'", (checkErr, row) => {
+            if (checkErr) {
+                console.error("Error checking client data:", checkErr);
+            } else if (!row) {
+                // Client data doesn't exist, insert it
+                clientdb.run(`
+                    INSERT INTO clients (client_name, client_number, balance) VALUES (?, ?, ?)
+                `, ['passager', '00000000', 0], (insertErr) => {
+                    if (insertErr) {
+                        console.error("Error inserting client data:", insertErr);
+                    } else {
+                        console.log("Client data added successfully.");
+                    }
+                });
+            } else {
+                console.log("Client data already exists.");
+            }
+        });
     }
-  }
-);
-
+});
 
 app.get('/api/clients', (req, res) => {
   clientdb.all('SELECT * FROM clients', (err, rows) => {
@@ -96,7 +99,7 @@ app.get('/api/clients/:client_name', (req, res) => {
   });
 });
 
-app.get('/api/clients/:client_id', (req, res) => {
+app.get('/api/clients/:client_id', async (req, res) => {
   const clientId = req.params.client_id;
   clientdb.all('SELECT * FROM clients WHERE client_id = ?', clientId, (err, rows) => {
     if (err) {
@@ -105,7 +108,7 @@ app.get('/api/clients/:client_id', (req, res) => {
     } else {
       res.json(rows); // Return client details
     }
-  });
+    });
 });
 
 
@@ -161,13 +164,13 @@ ordersdb.run(`
       profit REAL,
       client_id INTEGER,
       payment BOOLLEAN,
-      order_date TIMESTAMP DEFAULT (DATETIME('now', '+1 hour')),
-      payment_date TIMESTAMP
+      order_date TIMESTAMP DEFAULT (DATETIME('now', 'utc')),
+      payment_date TIMESTAMP DEFAULT (DATETIME('now', 'utc'))
     )
 `);
 
-app.get('/api/orders', (req, res) => {
-  ordersdb.all('SELECT * FROM orders', (err, rows) => {
+app.get('/api/orders/paid', (req, res) => {
+  ordersdb.all('SELECT * FROM orders WHERE payment = ? OR payment = ?',[1, 3], (err, rows) => {
     if (err) {
       console.error('Error fetching products:', err);
       res.status(500).json({ error: 'Internal server error' });
@@ -175,7 +178,18 @@ app.get('/api/orders', (req, res) => {
       res.json(rows);
     }
   });
-})
+});
+
+app.get('/api/orders/credit', (req, res) => {
+  ordersdb.all('SELECT * FROM orders WHERE payment = 0', (err, rows) => {
+    if (err) {
+      console.error('Error fetching products:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
 
 ordersdb.run(`
       CREATE TABLE IF NOT EXISTS orderdetails (
@@ -221,7 +235,7 @@ app.put('/api/orders/:orderId/pay-credit', (req, res) => {
   ordersdb.run(
     `
     UPDATE orders
-    SET payment = 1, payment_date = CURRENT_TIMESTAMP
+    SET payment = 3, payment_date = CURRENT_TIMESTAMP 
     WHERE order_id = ?
   `,
     [orderId],
@@ -274,6 +288,27 @@ app.put('/api/orders/:orderId/pay-credit', (req, res) => {
     }
   );
 });
+
+app.delete('/api/orders', async (req, res) => {
+  try {
+    // Delete orders where payment is 1 or 3
+    const result = await ordersdb.run(
+      `
+      DELETE FROM orders
+      WHERE payment = 1 OR payment = 3
+    `
+    );
+    if (result.changes === 0) {
+      res.status(404).json({ error: 'No orders found with payment status 1 or 3' });
+    } else {
+      res.json({ success: true, message: 'Orders deleted successfully' });
+    }
+  } catch (error) {
+    console.error('Error deleting orders:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 
@@ -360,7 +395,7 @@ app.post('/api/get-paid', async (req, res) => {
 
       // Insert the order into the orders table
       ordersdb.run(
-        'INSERT INTO orders (total_price, profit, client_id, payment, order_date) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+        'INSERT INTO orders (total_price, profit, client_id, payment, order_date, payment_date) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
         [totalPrice, profit, clientId, paymentMethod],
         function (err) {
           if (err) {
@@ -505,22 +540,33 @@ app.get('/api/products', (req, res) => {
   }
 });
 
+
+app.get('/api/total_product_sum', (req, res) => {
+  db.all('SELECT SUM(price_buy) AS total_product_price FROM products', (err, rows) => {
+    if (err) {
+      console.error('Error fetching total product sum:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (rows.length > 0) {
+        res.json(rows[0]); // Send the first row containing the total product price
+      } else {
+        res.status(404).json({ error: 'No products found' });
+      }
+    }
+  });
+});
+
+
+
 app.get('/api/reports', async (req, res) => {
   const { startDate, startTime, endDate, endTime } = req.query;
 
   try {
     // Query to calculate total sales within the specified time period
     const salesQuery = `
-      SELECT SUM(total_price) AS total_sales
-      FROM orders
-      WHERE order_date BETWEEN ? AND ?
-    `;
-
-    // Query to calculate profit sum within the specified time period
-    const profitQuery = `
-      SELECT SUM(profit) AS total_profit
-      FROM orders
-      WHERE order_date BETWEEN ? AND ?
+    SELECT SUM(total_price) AS total_sales
+    FROM orders
+    WHERE payment_date BETWEEN ? AND ?
     `;
 
     // Query to calculate total cash sales within the specified time period
@@ -533,6 +579,7 @@ app.get('/api/reports', async (req, res) => {
     // Query to calculate total credit sales within the specified time period
     const creditQuery = `
       SELECT SUM(total_price) AS credit
+
       FROM orders
       WHERE payment = 0 AND order_date BETWEEN ? AND ?
     `;
@@ -544,23 +591,28 @@ app.get('/api/reports', async (req, res) => {
       WHERE payment = 1 AND order_date BETWEEN ? AND ?
     `;
 
+    // Query to calculate total credit sales within the specified time period
+    const creditPaidQuery = `
+      SELECT SUM(total_price) AS credit_paid
+      FROM orders
+      WHERE payment = 3
+    `;
+
+    // Query to calculate total credit sales within the specified time period
+    const creditPaidProfitQuery = `
+      SELECT SUM(profit) AS credit_paid_profit
+      FROM orders
+      WHERE payment = 3
+    `;
+
     // Execute all queries simultaneously
-    const [salesResult, profitResult, cashResult, creditResult, cashProfitResult] = await Promise.all([
+    const [salesResult, cashResult, creditResult, cashProfitResult, creditPaidResult, creditPaidProfitResult] = await Promise.all([
       new Promise((resolve, reject) => {
         ordersdb.get(salesQuery, [`${startDate} ${startTime}`, `${endDate} ${endTime}`], (err, row) => {
           if (err) {
             reject(err);
           } else {
             resolve(row ? row.total_sales : 0);
-          }
-        });
-      }),
-      new Promise((resolve, reject) => {
-        ordersdb.get(profitQuery, [`${startDate} ${startTime}`, `${endDate} ${endTime}`], (err, row) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(row ? row.total_profit : 0);
           }
         });
       }),
@@ -590,15 +642,111 @@ app.get('/api/reports', async (req, res) => {
             resolve(row ? row.cash_profit : 0);
           }
         });
+      }),
+      new Promise((resolve, reject) => {
+        ordersdb.get(creditPaidQuery, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row ? row.credit_paid : 0);
+          }
+        })
+      }),
+      new Promise((resolve, reject) => {
+        ordersdb.get(creditPaidProfitQuery, (err, row) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row ? row.credit_paid_profit : 0);
+          }
+        })
       })
     ]);
 
-    res.json({ total_sales: salesResult, profit: profitResult, cash: cashResult, credit: creditResult, cash_profit: cashProfitResult });
+    // Response object with corrected field names
+    res.json({ 
+      total_sales: salesResult, 
+      cash: cashResult, 
+      credit: creditResult, 
+      cash_profit: cashProfitResult, 
+      credit_paid: creditPaidResult,
+      credit_paid_profit: creditPaidProfitResult
+    });
   } catch (error) {
     console.error('Error fetching report data:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+const reportDatabasePath = path.join(__dirname, 'report.db');
+const reportdb = new sqlite3.Database(reportDatabasePath);
+
+reportdb.run(`
+    CREATE TABLE IF NOT EXISTS reports (
+        report_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_date TIMESTAMP DEFAULT (DATETIME('now', 'utc')),
+        total_sales REAL,
+        total_cash REAL,
+        total_cash_profit REAL,
+        sales_of_the_day REAL,
+        credit_of_the_day REAL,
+        credit_paid_of_the_day REAL
+    )
+`);
+
+app.get('/api/dailyreports', (req, res) => {
+  reportdb.all('SELECT * FROM reports', (err, rows) => {
+    if (err) {
+      console.error('Error fetching reports:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
+    }
+  });
+});
+
+app.post('/api/reports', (req, res) => {
+  const newReport = req.body;
+  const { totalSales, totalCash, totalCashProfit, salesOfTheDay, creditOfTheDay, creditPaidOfTheDay } = newReport;
+  const currentDate = new Date().toISOString().slice(0, 10); // Get the current date in YYYY-MM-DD format
+  
+  // Check if a report already exists for the current date
+  reportdb.get('SELECT * FROM reports WHERE report_date = ?', [currentDate], (err, row) => {
+  if (err) {
+    console.error('Error checking existing report:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else if (row) {
+      // If a report already exists for today, return an error
+      console.log('Report already exists for today');
+      res.status(400).json({ error: 'Report already exists for today' });
+    } else {
+      // If no report exists for today, insert the new report
+    reportdb.run(
+      `
+      INSERT INTO reports (
+        report_date,
+        total_sales,
+        total_cash,
+        total_cash_profit,
+        sales_of_the_day,
+        credit_of_the_day,
+        credit_paid_of_the_day
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `,
+      [currentDate, totalSales, totalCash, totalCashProfit, salesOfTheDay, creditOfTheDay, creditPaidOfTheDay],
+      (err) => {
+        if (err) {
+          console.error('Error adding new Report:', err);
+          res.status(500).json({ error: 'Internal server error' });
+        } else {
+          console.log('New Report added successfully');
+          res.json({ success: true, message: 'New Report added successfully' });
+        }
+      }
+    );
+    }
+});
+})
 
 app.get('/api/app-start-time', (req, res) => {
   // Query the database to get the server's start time from the app_start_time table
@@ -625,8 +773,8 @@ ordersdb.run(
   `
   CREATE TABLE IF NOT EXISTS app_start_time (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    end_time TIMESTAMP
+    start_time TIMESTAMP DEFAULT (DATETIME('now', 'utc')),
+    end_time TIMESTAMP 
   )
 `, (err) => {
   if (err) {

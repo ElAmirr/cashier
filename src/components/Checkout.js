@@ -126,7 +126,7 @@ const Checkout = () => {
       console.error('Error:', error);
     }
   };
-  
+
   
 
   return (
@@ -158,7 +158,7 @@ const Checkout = () => {
           }}>
             <Paper elevation={3} sx={{ padding: '20px', width: '49%', display: 'flex', justifyContent: 'center' }}>
               <Typography variant="h6" gutterBottom color="primary">
-                {totalPrice.toFixed(2)} DT
+                {totalPrice.toFixed(2)} TND
               </Typography>
             </Paper>
             <Button mt={4} variant="contained" color="success" onClick={handleGetPaid} sx={{
@@ -187,7 +187,7 @@ const Checkout = () => {
                   {products.map((product, index) => (
                     <TableRow key={index}>
                       <TableCell sx={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{product.name}</TableCell>
-                      <TableCell>{product.price_sell}</TableCell>
+                      <TableCell>{product.price_sell} TND</TableCell>
                       <TableCell>{product.quantity}</TableCell>
                       <TableCell>
                         <Box sx={{

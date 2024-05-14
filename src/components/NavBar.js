@@ -51,6 +51,9 @@ function NavBar() {
             <ListItem component={Link} to="/orders" sx={{ textDecoration: 'none' }} >
               <ListItemText primary="Orders" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
             </ListItem>
+            <ListItem component={Link} to="/reports" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Reports" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+            </ListItem>
           </List>
           <Typography variant="h6" component="div" sx={{ }}>
             {formattedTime}
@@ -84,9 +87,15 @@ function NavBar() {
           <ListItem component={Link} to="/add_product" onClick={toggleDrawer}>
             <ListItemText primary="Add Product" />
           </ListItem>
+          <ListItem component={Link} to="/clients" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Clients" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+            </ListItem>
           <ListItem component={Link} to="/orders" onclick={toggleDrawer}>
             <ListItemText primary="Orders" />
           </ListItem>
+            <ListItem component={Link} to="/reports" sx={{ textDecoration: 'none' }} >
+              <ListItemText primary="Reports" sx={{ color: 'white', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+            </ListItem>
         </List>
       </Drawer>
     </div>

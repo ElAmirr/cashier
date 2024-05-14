@@ -8,7 +8,7 @@ import Checkout from './components/Checkout';
 import Orders from './components/Orders';
 import Clients from './components/Clients';
 import FullScreen from './components/FullScreen';
-
+import Reports from './components/Reports';
 
 
 const App = () => {
@@ -23,6 +23,7 @@ const App = () => {
         <Route path="/add_product" component={AddProductForm} />
         <Route path="/clients" component={Clients} />
         <Route path="/orders" component={Orders} />
+        <Route path="/reports" component={Reports} />
       </Switch>
     </div>
   );

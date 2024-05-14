@@ -90,7 +90,11 @@ const Clients = () => {
   const columns = [
     { field: 'client_id', headerName: 'ID', width: 50 },
     { field: 'client_name', headerName: 'Client Name', width: 200 },
-    { field: 'balance', headerName: 'Balance', type: 'number', width: 150 },
+    { field: 'balance', headerName: 'Balance', type: 'number', width: 150,
+      renderCell: (params) => (
+        <span>{`${params.value} TND`}</span>
+    ),
+    },
     { field: 'client_number', headerName: 'Client Number', type: 'number', width: 200 },
     {
       field: 'pay_credit',

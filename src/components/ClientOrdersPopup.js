@@ -35,7 +35,7 @@ const ClientOrdersPopup = ({ open, handleClose, client, orders }) => {
             <React.Fragment key={order.order_id}>
               <ListItem>
                 <ListItemText primary={`Order ID: ${order.order_id}`} />
-                <ListItemText primary={`Total: ${order.total_price} DT`} />
+                <ListItemText primary={`Total: ${order.total_price} TND`} />
                 <Button
                             variant="contained"
                             color="success"

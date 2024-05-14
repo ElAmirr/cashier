@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, Button, Typography } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Table, TableHead, TableBody, TableRow, TableCell, Button } from '@mui/material';
 
 const OrderDetailsPopup = ({ open, order, onClose }) => {
   const [orderDetails, setOrderDetails] = useState([]);
   const [productDetails, setProductDetails] = useState([]);
+
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -45,17 +46,14 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
     fetchAllProductDetails();
   }, [orderDetails]);
 
-  // Function to handle printing
   const handlePrint = () => {
     window.print();
   };
 
-  // Render nothing if product details are not available yet
   if (!productDetails.length) {
     return null;
   }
 
-  // Inline styles for printing
   const printStyles = `
     @media print {
       .print-only {
@@ -65,36 +63,40 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
   `;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <style>{printStyles}</style> {/* Apply the print styles */}
-      <DialogTitle>{`Order - Client ID ${order.order_id} ${order.client_id}- Date: ${order.order_date}`}</DialogTitle>
+    <Dialog open={open} onClose={onClose} width="150px" fullWidth>
+      <style>{printStyles}</style>
+      <DialogTitle>{`Order - Client ID : ${order.order_id} - ${order.client_id} - Date: ${order.order_date}`}</DialogTitle>
       <DialogContent>
-      <Typography variant="h6">Client Name: {order.clientData && order.clientData[0] && order.clientData[0].client_name}</Typography>
-
-        <List>
-          <ListItemText primary={`QTY DESC AMT`} />
-          {productDetails.map((detail, index) => (
-            <ListItem key={index}>
-              <ListItemText
-                primary={`
-                  ${orderDetails[index]?.quantity} 
-                  ${detail ? detail.name : 'Product Name Unavailable'} 
-                  ${detail ? detail.price_sell : 'Price Unavailable'}
-                `}  
-              />
-            </ListItem>
-          ))}
-        </List>
-      <DialogTitle>{`Total: ${order.total_price}`}</DialogTitle>  
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>QTY</TableCell>
+              <TableCell>DESC</TableCell>
+              <TableCell>AMT</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {productDetails.map((detail, index) => (
+              <TableRow key={index}>
+                <TableCell>{orderDetails[index]?.quantity}</TableCell>
+                <TableCell>{detail ? detail.name : 'Product Name Unavailable'}</TableCell>
+                <TableCell>{detail ? `${detail.price_sell} TND` : 'Price Unavailable'}</TableCell>
+              </TableRow>
+            ))}
+            <TableRow>
+              <TableCell colSpan={2} align="right">Total:</TableCell>
+              <TableCell>{order.total_price} TND</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </DialogContent>
       <DialogActions>
-      <Button onClick={onClose} color="primary" variant='outlined' className="print-only">
+        <Button onClick={onClose} color="primary" variant='outlined' className="print-only">
           Close
         </Button>
         <Button onClick={handlePrint}  color="primary" variant="contained" className="print-only">
           Print
         </Button>
-        
       </DialogActions>
     </Dialog>
   );

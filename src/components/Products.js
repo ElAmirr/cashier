@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import SearchProductByName from './SearchProductByName';
-import { Box, Button } from '@mui/material';
+import { Box, Button, Paper } from '@mui/material';
 import DialogPopup from './DialogPopup';
 
 const Products = () => {
@@ -11,6 +11,7 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [totalSum, setTotalSum] = useState(0); // State to hold the total sum
 
   useEffect(() => {
     fetchData();
@@ -34,6 +35,12 @@ const Products = () => {
 
   const displayAllProducts = () => {
     setProducts(originalProducts);
+    // Calculate total sum
+    let sum = 0;
+    originalProducts.forEach((product) => {
+      sum += product.price_buy * product.stock;
+    });
+    setTotalSum(sum); // Set the total sum state
   };
 
   const handleEdit = (product) => {
@@ -71,26 +78,28 @@ const Products = () => {
   const columns = [
     { field: 'id', headerName: 'ID', width: 50 },
     { field: 'name', headerName: 'Product', width: 120 },
-    { 
-      field: 'price_buy', headerName: 'Prix Dachat', type: 'number', width: 100,
-      renderCell: (params) => (
-        <span>{`${params.value} TND`}</span>
-      ),
+    {
+      field: 'price_buy',
+      headerName: 'Prix Dachat',
+      type: 'number',
+      width: 100,
+      renderCell: (params) => <span>{`${params.value} TND`}</span>,
     },
-    { 
-      field: 'price_sell', headerName: 'Prix De Vante', type: 'number', width: 100,
-      renderCell: (params) => (
-        <span>{`${params.value} TND`}</span>
-      ),
+    {
+      field: 'price_sell',
+      headerName: 'Prix De Vante',
+      type: 'number',
+      width: 100,
+      renderCell: (params) => <span>{`${params.value} TND`}</span>,
     },
-    { 
-      field: 'stock', 
-      headerName: 'Stock', 
-      type: 'number', 
+    {
+      field: 'stock',
+      headerName: 'Stock',
+      type: 'number',
       width: 80,
       renderCell: (params) => (
         <span style={{ color: params.value <= 5 ? 'red' : 'green' }}>
-          { params.value }
+          {params.value}
         </span>
       ),
     },
@@ -129,15 +138,20 @@ const Products = () => {
 
   return (
     <div>
-      <Box mt={4} sx={{
-        width: '100vw',
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        justifyContent: 'space-around'
-      }}>
-        <Box sx={{
-          width: { xs: '100%', md: '25%' }
-        }}>
+      <Box
+        mt={4}
+        sx={{
+          width: '100vw',
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          justifyContent: 'space-around',
+        }}
+      >
+        <Box
+          sx={{
+            width: { xs: '100%', md: '25%' },
+          }}
+        >
           <SearchProductByName onSearch={handleSearch} />
           <Button
             variant="contained"
@@ -147,6 +161,19 @@ const Products = () => {
           >
             Display All Products
           </Button>
+          <Paper
+            elevation={3}
+            sx={{
+              padding: '30px',
+              marginTop: '20px',
+              backgroundColor: '#f3f3f3',
+              borderRadius: '5px',
+              textAlign: 'center',
+              fontSize: '18px'
+            }}
+          >
+            Total Sum of Products: {totalSum} TND
+          </Paper>
         </Box>
         <Box style={{ height: 560, minWidth: '60%' }}>
           <DataGrid
