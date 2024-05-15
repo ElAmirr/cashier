@@ -63,6 +63,20 @@ project-root/
 └── README.md # Project README file
 
 
+## Screenshots
+![Alt text](/screenshots/scs1.png)
+![Alt text](/screenshots/scs2.png)
+![Alt text](/screenshots/scs3.png)
+![Alt text](/screenshots/scs4.png)
+![Alt text](/screenshots/scs5.png)
+![Alt text](/screenshots/scs6.png)
+![Alt text](/screenshots/scs7.png)
+![Alt text](/screenshots/scs8.png)
+![Alt text](/screenshots/scs9.png)
+![Alt text](/screenshots/scs10.png)
+![Alt text](/screenshots/scs11.png)
+![Alt text](/screenshots/scs12.png)
+
 ## Contribution
 
 Contributions are welcome! If you find any bugs or have suggestions for improvements, please feel free to open an issue or submit a pull request.

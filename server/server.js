@@ -8,7 +8,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const publicPath = path.join(__dirname, '../public');
+const publicPath = path.join(__dirname, '../build');
 app.use(express.static(publicPath));
 
 const databasePath = path.join(__dirname, 'database.db');
@@ -806,6 +806,9 @@ ordersdb.run(
   }
 });
 
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
