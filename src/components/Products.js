@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import SearchProductByName from './SearchProductByName';
@@ -11,23 +11,47 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [totalSum, setTotalSum] = useState(0); // State to hold the total sum
+  const [totalSum, setTotalSum] = useState(0);
+
+  const tenant_id = localStorage.getItem('tenant_id'); // Retrieve tenant_id from local storage
+
+  // Use useCallback to memoize fetchData
+  const fetchData = useCallback(async () => {
+    if (!tenant_id) {
+        alert('Tenant ID is missing. Please log in again.');
+        return;
+    }
+
+    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+    if (!token) {
+        console.error('Token is missing. Please log in again.');
+        return;
+    }
+
+    setLoading(true);
+    try {
+        console.log('Fetching products for Tenant ID:', tenant_id);
+        const response = await axios.get('/api/products', {
+            headers: {
+                Authorization: `Bearer ${token}`, // Include the token
+            },
+        });
+        console.log('API Response:', response.data);
+        setProducts(response.data);
+        setOriginalProducts(response.data);
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        alert('An error occurred while fetching products. Please try again later.');
+    } finally {
+        setLoading(false);
+    }
+}, [tenant_id]);
+
+
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const response = await axios.get('/api/products');
-      setProducts(response.data);
-      setOriginalProducts(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('An error occurred while fetching products.');
-    }
-  };
+  }, [fetchData]);
 
   const handleSearch = (searchResults) => {
     setProducts(searchResults);
@@ -35,12 +59,13 @@ const Products = () => {
 
   const displayAllProducts = () => {
     setProducts(originalProducts);
-    // Calculate total sum
     let sum = 0;
     originalProducts.forEach((product) => {
-      sum += product.price_buy * product.stock;
+      const price = product.price_buy || 0;
+      const stock = product.stock || 0;
+      sum += price * stock;
     });
-    setTotalSum(sum); // Set the total sum state
+    setTotalSum(sum);
   };
 
   const handleEdit = (product) => {
@@ -53,8 +78,13 @@ const Products = () => {
   };
 
   const handleSave = async () => {
+    if (!selectedProduct) return;
+
     try {
-      await axios.put(`/api/products/${selectedProduct.id}`, selectedProduct);
+      await axios.put(`/api/products/${selectedProduct.id}`, {
+        ...selectedProduct,
+        tenant_id, // Include tenant_id in the request
+      });
       console.log('Product updated successfully');
       setOpen(false);
       fetchData();
@@ -66,7 +96,9 @@ const Products = () => {
 
   const handleDelete = async (productId) => {
     try {
-      await axios.delete(`/api/products/${productId}`);
+      await axios.delete(`/api/products/${productId}`, {
+        data: { tenant_id }, // Include tenant_id in the delete request
+      });
       console.log('Product deleted successfully');
       fetchData();
     } catch (error) {
@@ -83,14 +115,14 @@ const Products = () => {
       headerName: 'Prix Dachat',
       type: 'number',
       width: 100,
-      renderCell: (params) => <span>{`${params.value} TND`}</span>,
+      renderCell: (params) => <span>{`${params.value || 0} TND`}</span>,
     },
     {
       field: 'price_sell',
       headerName: 'Prix De Vante',
       type: 'number',
       width: 100,
-      renderCell: (params) => <span>{`${params.value} TND`}</span>,
+      renderCell: (params) => <span>{`${params.value || 0} TND`}</span>,
     },
     {
       field: 'stock',
@@ -152,7 +184,7 @@ const Products = () => {
             width: { xs: '100%', md: '25%' },
           }}
         >
-          <SearchProductByName onSearch={handleSearch} />
+          <SearchProductByName onSearch={handleSearch} tenant_id={tenant_id} />
           <Button
             variant="contained"
             color="primary"
@@ -169,7 +201,7 @@ const Products = () => {
               backgroundColor: '#f3f3f3',
               borderRadius: '5px',
               textAlign: 'center',
-              fontSize: '18px'
+              fontSize: '18px',
             }}
           >
             Total Sum of Products: {totalSum} TND

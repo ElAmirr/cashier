@@ -8,6 +8,9 @@ import axios from 'axios';
 import ClientMenu from './ClientMenu';
 import PaymentMethodSelector from './PaymentMethodSelector';
 
+const tenant_id = localStorage.getItem('tenant_id'); // Retrieve tenant_id from local storage
+
+
 const Checkout = () => {
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -145,7 +148,7 @@ const Checkout = () => {
           alignItems: 'center',
           gap: '20px'
           }}>
-          <SearchProductByName onSearch={handleSearch} />
+          <SearchProductByName onSearch={handleSearch} tenant_id={tenant_id} />
           <ClientMenu onSelectClient={handleClientSelect} />
           <PaymentMethodSelector onSelectPaymentMethod={handlePaymentMethodSelect} />
 

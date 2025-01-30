@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextField, Typography, Box, Paper, List, ListItem, ListItemText } from '@mui/material';
 import axios from 'axios';
 
-const SearchProductByName = ({ onSearch }) => {
+const SearchProductByName = ({ onSearch, tenant_id }) => {
   const [productName, setProductName] = useState('');
   const [searchResults, setSearchResults] = useState([]);
 
@@ -17,7 +17,8 @@ const SearchProductByName = ({ onSearch }) => {
     }
 
     try {
-      const response = await axios.get(`/api/products?name=${value}`);
+      // Send tenant_id as part of the query parameters
+      const response = await axios.get(`/api/products?name=${value}&tenant_id=${tenant_id}`);
       setSearchResults(response.data);
     } catch (error) {
       console.error('Error searching products:', error);
@@ -47,13 +48,19 @@ const SearchProductByName = ({ onSearch }) => {
           margin="normal"
         />
         <Box sx={{ marginTop: '10px', width: '100%' }}>
-          <List sx= {{
-            maxHeight: '280px',
-            overflowY: 'scroll'
-          }}>
+          <List
+            sx={{
+              maxHeight: '280px',
+              overflowY: 'scroll',
+            }}
+          >
             {searchResults.map((product, index) => (
-              <ListItem key={index} button onClick={() => handleAddToOrder(product)} >
-                <ListItemText primary={product.name} secondary={`Quantité disponible ${product.stock}`} sx={{ width: '100%' }}/>
+              <ListItem key={index} button onClick={() => handleAddToOrder(product)}>
+                <ListItemText
+                  primary={product.name}
+                  secondary={`Quantité disponible: ${product.stock}`}
+                  sx={{ width: '100%' }}
+                />
               </ListItem>
             ))}
           </List>

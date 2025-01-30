@@ -8,22 +8,34 @@ const ClientMenu = ({ onSelectClient }) => {
 
   useEffect(() => {
     const fetchClients = async () => {
+      const token = localStorage.getItem('token'); // Retrieve token from localStorage
+
+      if (!token) {
+        alert('Unauthorized access. Please log in again.');
+        window.location.href = '/login'; // Redirect to login if no token is found
+        return;
+      }
+
       try {
-        const response = await axios.get('/api/clients');
-        setClients(response.data);
+        const response = await axios.get('/api/clients', {
+          headers: {
+            Authorization: `Bearer ${token}`, // Add token to headers
+          },
+        });
+        setClients(response.data); // Set the fetched clients
       } catch (error) {
         console.error('Error fetching clients:', error);
-        // Handle error gracefully, e.g., display a message to the user
+        alert('An error occurred while fetching clients. Please try again.');
       }
     };
 
-    fetchClients();
-  }, [onSelectClient]);
+    fetchClients(); // Call the fetchClients function
+  }, []);
 
   const handleClientChange = (event) => {
     const clientId = event.target.value;
     setSelectedClientId(clientId);
-    onSelectClient(clientId); // Pass selected client ID to the parent component
+    onSelectClient(clientId); // Pass the selected client ID to the parent component
   };
 
   return (
@@ -33,15 +45,19 @@ const ClientMenu = ({ onSelectClient }) => {
         <Select
           labelId="client-menu-label"
           id="client-menu"
-          value={selectedClientId}
+          value={selectedClientId || ''} // Default to an empty string when no client is selected
           onChange={handleClientChange}
           label="Select Client"
         >
-          {clients.map((client) => (
-            <MenuItem key={client.client_id} value={client.client_id}>
-              {client.client_name}
-            </MenuItem>
-          ))}
+          {clients.length > 0 ? (
+            clients.map((client) => (
+              <MenuItem key={client.client_id} value={client.client_id}>
+                {client.client_name}
+              </MenuItem>
+            ))
+          ) : (
+            <MenuItem value="">No clients available</MenuItem> // Show a message when no clients are available
+          )}
         </Select>
       </FormControl>
     </Paper>

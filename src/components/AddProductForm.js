@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Paper, Typography, TextField, Button, Box } from '@mui/material';
-import axios from 'axios'; // Import Axios library
+import axios from 'axios';
 
 const AddProductForm = () => {
   const [product, setProduct] = useState({
@@ -10,6 +10,8 @@ const AddProductForm = () => {
     stock: '',
     description: ''
   });
+
+  const tenantId = localStorage.getItem('tenant_id'); // Retrieve tenant_id from localStorage
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -22,11 +24,21 @@ const AddProductForm = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+
     try {
-      const response = await axios.post('/api/products', product); // Make a POST request to the backend
+      const response = await axios.post(
+        '/api/products',
+        { ...product, tenant_id: tenantId }, // Add tenant_id to the product data
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       console.log(response.data);
       alert(response.data.message);
-      setProduct({ // Clear all fields after successful submission
+      setProduct({
         name: '',
         price_buy: '',
         price_sell: '',
