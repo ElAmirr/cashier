@@ -76,6 +76,17 @@ async function initializeDatabase() {
         `);
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS orderdetails (
+                order_detail_id INT AUTO_INCREMENT PRIMARY KEY,
+                order_id INT NOT NULL,
+                product_id INT NOT NULL,
+                quantity INT NOT NULL,
+                FOREIGN KEY (order_id) REFERENCES orders(order_id),
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            );
+        `);
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS reports (
                 report_id INT AUTO_INCREMENT PRIMARY KEY,
                 tenant_id BIGINT NOT NULL,
@@ -179,18 +190,20 @@ app.get('/api/clients', authenticateToken, async (req, res) => {
 // Protected route: Add a new client
 app.post('/api/clients', async (req, res) => {
     const { client_name, client_number } = req.body;
-    const balance = 0;
+    const balance = 0; // Default balance for new clients
+  
     try {
-        await pool.query(
-            'INSERT INTO clients (tenant_id, client_name, client_number, balance) VALUES (?, ?, ?, ?)',
-            [req.tenant_id, client_name, client_number, balance]
-        );
-        res.json({ success: true, message: 'New client added successfully' });
+      const [result] = await pool.query(
+        'INSERT INTO clients (client_name, client_number, balance) VALUES (?, ?, ?)',
+        [client_name, client_number, balance]
+      );
+  
+      res.json({ success: true, message: 'Client added successfully', client_id: result.insertId });
     } catch (err) {
-        console.error('Error adding new client:', err);
-        res.status(500).json({ error: 'Internal server error' });
+      console.error('Error adding new client:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
-});
+  });
 
 // Fetch unpaid orders for a client
 app.get('/api/orders/client/:clientId', async (req, res) => {
@@ -281,18 +294,103 @@ app.get('/api/products', async (req, res) => {
 
 
 // Protected route: Get all orders for a tenant
-app.get('/api/orders', async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT * FROM orders WHERE tenant_id = ?', [req.tenant_id]);
-        res.json(rows);
-    } catch (err) {
-        console.error('Error fetching orders:', err);
-        res.status(500).json({ error: 'Internal server error' });
+app.get('/api/orders', (req, res) => {
+  const tenant_id = req.headers['tenant-id']; // Get tenant_id from headers
+
+  pool.query('SELECT * FROM orders WHERE tenant_id = ?', [tenant_id], (err, rows) => {
+    if (err) {
+      console.error('Error fetching orders:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(rows);
     }
+  });
 });
+
+// Protected route: Get all orders for a tenant
+app.get('/api/orders/paid', authenticateToken, async (req, res) => {
+    try {
+      const [rows] = await pool.query(
+        'SELECT * FROM orders WHERE tenant_id = ? AND payment = 1', // Fetch paid orders (payment = 1)
+        [req.tenant_id]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Error fetching paid orders:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.get('/api/orders/credit', authenticateToken, async (req, res) => {
+    try {
+      const [rows] = await pool.query(
+        'SELECT * FROM orders WHERE tenant_id = ? AND payment = 0', // Fetch credit orders (payment = 0)
+        [req.tenant_id]
+      );
+      res.json(rows);
+    } catch (err) {
+      console.error('Error fetching credit orders:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.get('/api/orders/:orderId/details', authenticateToken, async (req, res) => {
+    const orderId = req.params.orderId;
+  
+    try {
+      // Fetch order details
+      const [orderDetails] = await pool.query(
+        `SELECT od.*, p.name, p.price_sell 
+         FROM orderdetails od
+         JOIN products p ON od.product_id = p.id
+         WHERE od.order_id = ?`,
+        [orderId]
+      );
+  
+      res.json(orderDetails);
+    } catch (err) {
+      console.error('Error fetching order details:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
 // Protected route: Add a new order
 // Protected route: Create order with details
+app.post('/api/orders', async (req, res) => {
+    const { tenant_id, client_id, total_price, profit, payment, products } = req.body;
+    
+    try {
+      const connection = await pool.getConnection();
+      await connection.beginTransaction();
+  
+      try {
+        // Create order
+        const [orderResult] = await connection.query(
+          'INSERT INTO orders (tenant_id, total_price, profit, client_id, payment) VALUES (?, ?, ?, ?, ?)',
+          [tenant_id, total_price, profit, client_id, payment]
+        );
+        
+        // Create order details
+        for (const product of products) {
+          await connection.query(
+            'INSERT INTO orderdetails (order_id, product_id, quantity) VALUES (?, ?, ?)',
+            [orderResult.insertId, product.product_id, product.quantity]
+          );
+        }
+  
+        await connection.commit();
+        res.json({ success: true, orderId: orderResult.insertId });
+      } catch (err) {
+        await connection.rollback();
+        throw err;
+      } finally {
+        connection.release();
+      }
+    } catch (err) {
+      console.error('Order creation error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 app.post('/api/orders', async (req, res) => {
   const { tenant_id, client_id, total_price, profit, payment, products } = req.body;
   
@@ -327,8 +425,7 @@ app.post('/api/orders', async (req, res) => {
     console.error('Order creation error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
-
+});  
 // Protected route: Update product stock
 app.put('/api/products/:id/stock', async (req, res) => {
   const productId = req.params.id;

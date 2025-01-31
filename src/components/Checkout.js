@@ -109,6 +109,8 @@ const Checkout = () => {
           quantity: p.quantity
         }))
       };
+      
+      console.log('Order Data:', orderData); // Add this line to debug
   
       // Create order
       const orderResponse = await api.post('/orders', orderData);

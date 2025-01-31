@@ -6,11 +6,18 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
   const [orderDetails, setOrderDetails] = useState([]);
   const [productDetails, setProductDetails] = useState([]);
 
+  const tenant_id = localStorage.getItem('tenant_id'); // Get tenant_id from localStorage
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
       try {
-        const response = await axios.get(`/api/orders/${order.order_id}/details`);
+        const username = localStorage.getItem('username');
+        const response = await axios.get(`/api/orders/${order.order_id}/details`, {
+          headers: {
+            'Authorization': `Bearer ${username}`,
+            'Tenant-ID': tenant_id, // Include tenant_id in headers
+          },
+        });
         setOrderDetails(response.data);
       } catch (error) {
         console.error('Error fetching order details:', error);
@@ -20,12 +27,18 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
     if (open && order) {
       fetchOrderDetails();
     }
-  }, [open, order]);
+  }, [open, order, tenant_id]);
 
   useEffect(() => {
     const fetchProductDetails = async (productId) => {
       try {
-        const response = await axios.get(`/api/products/${productId}`);
+        const username = localStorage.getItem('username');
+        const response = await axios.get(`/api/products/${productId}`, {
+          headers: {
+            'Authorization': `Bearer ${username}`,
+            'Tenant-ID': tenant_id, // Include tenant_id in headers
+          },
+        });
         return response.data;
       } catch (error) {
         console.error('Error fetching product details:', error);
@@ -44,7 +57,7 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
     };
 
     fetchAllProductDetails();
-  }, [orderDetails]);
+  }, [orderDetails, tenant_id]);
 
   const handlePrint = () => {
     window.print();
@@ -54,17 +67,8 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
     return null;
   }
 
-  const printStyles = `
-    @media print {
-      .print-only {
-        display: none;
-      }
-    }
-  `;
-
   return (
     <Dialog open={open} onClose={onClose} width="150px" fullWidth>
-      <style>{printStyles}</style>
       <DialogTitle>{`Order - Client ID : ${order.order_id} - ${order.client_id} - Date: ${order.order_date}`}</DialogTitle>
       <DialogContent>
         <Table>
@@ -91,10 +95,10 @@ const OrderDetailsPopup = ({ open, order, onClose }) => {
         </Table>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="primary" variant='outlined' className="print-only">
+        <Button onClick={onClose} color="primary" variant="outlined" className="print-only">
           Close
         </Button>
-        <Button onClick={handlePrint}  color="primary" variant="contained" className="print-only">
+        <Button onClick={handlePrint} color="primary" variant="contained" className="print-only">
           Print
         </Button>
       </DialogActions>
