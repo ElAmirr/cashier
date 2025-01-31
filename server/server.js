@@ -224,14 +224,26 @@ app.delete('/api/clients/:clientId', async (req, res) => {
 
 
 // Protected route: Get all products for a tenant
+// server.js - Update the GET /api/products endpoint
 app.get('/api/products', async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT * FROM products WHERE tenant_id = ?', [req.tenant_id]);
-        res.json(rows);
-    } catch (err) {
-        console.error('Error fetching products:', err.message);
-        res.status(500).json({ error: 'Internal server error' });
+  try {
+    const { name } = req.query;
+    const tenant_id = req.tenant_id;
+
+    let query = 'SELECT * FROM products WHERE tenant_id = ?';
+    const params = [tenant_id];
+
+    if (name) {
+      query += ' AND name LIKE ?'; // Add name filter
+      params.push(`%${name}%`); // Use wildcards for partial matching
     }
+
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 
@@ -280,18 +292,83 @@ app.get('/api/orders', async (req, res) => {
 });
 
 // Protected route: Add a new order
+// Protected route: Create order with details
 app.post('/api/orders', async (req, res) => {
-    const { total_price, profit, client_id, payment } = req.body;
+  const { tenant_id, client_id, total_price, profit, payment, products } = req.body;
+  
+  try {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+
     try {
-        await pool.query(
-            'INSERT INTO orders (tenant_id, total_price, profit, client_id, payment) VALUES (?, ?, ?, ?, ?)',
-            [req.tenant_id, total_price, profit, client_id, payment]
+      // Create order
+      const [orderResult] = await connection.query(
+        'INSERT INTO orders (tenant_id, total_price, profit, client_id, payment) VALUES (?, ?, ?, ?, ?)',
+        [tenant_id, total_price, profit, client_id, payment]
+      );
+      
+      // Create order details
+      for (const product of products) {
+        await connection.query(
+          'INSERT INTO orderdetails (order_id, product_id, quantity) VALUES (?, ?, ?)',
+          [orderResult.insertId, product.product_id, product.quantity]
         );
-        res.json({ success: true, message: 'New order added successfully' });
+      }
+
+      await connection.commit();
+      res.json({ success: true, orderId: orderResult.insertId });
     } catch (err) {
-        console.error('Error adding new order:', err);
-        res.status(500).json({ error: 'Internal server error' });
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
     }
+  } catch (err) {
+    console.error('Order creation error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Protected route: Update product stock
+app.put('/api/products/:id/stock', async (req, res) => {
+  const productId = req.params.id;
+  const { stock, tenant_id } = req.body;
+
+  try {
+    const [result] = await pool.query(
+      'UPDATE products SET stock = ? WHERE id = ? AND tenant_id = ?',
+      [stock, productId, tenant_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Stock update error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Protected route: Get order details
+app.get('/api/orders/:id/details', async (req, res) => {
+  const orderId = req.params.id;
+  
+  try {
+    const [rows] = await pool.query(
+      `SELECT od.*, p.name, p.price_sell 
+       FROM orderdetails od
+       JOIN products p ON od.product_id = p.id
+       WHERE od.order_id = ?`,
+      [orderId]
+    );
+    
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching order details:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Protected route: Get reports for a tenant

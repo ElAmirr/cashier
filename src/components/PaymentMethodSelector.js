@@ -1,30 +1,27 @@
-import React, { useState } from 'react';
-import { FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import React from 'react';
+import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 
-const PaymentMethodSelector = ({ onSelectPaymentMethod }) => {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState();
+const PaymentMethodSelector = ({ onSelectMethod }) => {
+  const [paymentMethod, setPaymentMethod] = React.useState(true);
 
   const handleChange = (event) => {
-    setSelectedPaymentMethod(event.target.value);
-    onSelectPaymentMethod(event.target.value === 'now');
+    const method = event.target.value;
+    setPaymentMethod(method);
+    onSelectMethod(method); // Ensure this is a function
   };
 
   return (
-    <Paper elevation={3} sx={{ padding: '20px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <FormControl fullWidth >
-        <InputLabel id="payment-method-label">Payment Method</InputLabel>
-        <Select
-          labelId="payment-method-label"
-          id="payment-method"
-          value={selectedPaymentMethod}
-          onChange={handleChange}
-          label="Payment Method"
-        >
-          <MenuItem value="now" defaultChecked>Pay Now</MenuItem>
-          <MenuItem value="later">Pay Later</MenuItem>
-        </Select>
-      </FormControl>
-    </Paper>
+    <FormControl fullWidth variant="outlined" margin="normal">
+      <InputLabel>Payment Method</InputLabel>
+      <Select
+        value={paymentMethod}
+        onChange={handleChange}
+        label="Payment Method"
+      >
+        <MenuItem value={true}>Cash</MenuItem>
+        <MenuItem value={false}>Credit</MenuItem>
+      </Select>
+    </FormControl>
   );
 };
 

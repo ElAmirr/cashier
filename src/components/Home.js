@@ -1,84 +1,139 @@
 import React from 'react';
-import { IconButton } from '@mui/material';
+import { Grid, Paper, IconButton, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { Home as HomeIcon, Store as ProductsIcon, ShoppingCart as CheckoutIcon, AddBox as AddProductIcon, People as ClientsIcon, Assignment as OrdersIcon, BarChart as ReportsIcon } from '@mui/icons-material';
-import backgroundImage from './background.jpg'; // Import your background image
+import { 
+  Store as ProductsIcon, 
+  ShoppingCart as CheckoutIcon, 
+  AddBox as AddProductIcon, 
+  People as ClientsIcon, 
+  Assignment as OrdersIcon, 
+  BarChart as ReportsIcon 
+} from '@mui/icons-material';
+import backgroundImage from './background.jpg';
 
 const Home = () => {
+  const navItems = [
+    { icon: <ProductsIcon />, path: "/products", label: "Products" },
+    { icon: <CheckoutIcon />, path: "/checkout", label: "Checkout" },
+    { icon: <AddProductIcon />, path: "/add_product", label: "Add Product" },
+    { icon: <ClientsIcon />, path: "/clients", label: "Clients" },
+    { icon: <OrdersIcon />, path: "/orders", label: "Orders" },
+    { icon: <ReportsIcon />, path: "/reports", label: "Reports" },
+  ];
+
   return (
-    <div
-      style={{
-        position: 'relative', // Make the container relative to position its children
-        width: '100%',
-        height: '90vh',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute', // Position the non-blurred squares on top of the background image
-          top: 0,
-          left: 0,
-          margin: '0 auto',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1, // Ensure the squares are in front of the background image
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Non-blurred squares */}
-        <IconButton component={Link} to="/" style={squareStyle}>
-          <HomeIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/products" style={squareStyle}>
-          <ProductsIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/checkout" style={squareStyle}>
-          <CheckoutIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/add_product" style={squareStyle}>
-          <AddProductIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/clients" style={squareStyle}>
-          <ClientsIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/orders" style={squareStyle}>
-          <OrdersIcon style={{ fontSize: 100 }} />
-        </IconButton>
-        <IconButton component={Link} to="/reports" style={squareStyle}>
-          <ReportsIcon style={{ fontSize: 100 }} />
-        </IconButton>
+    <div style={containerStyle}>
+      <div style={backgroundStyle}>
+        <div style={overlayStyle} />
+        <img 
+          src={backgroundImage} 
+          alt="background" 
+          style={imageStyle} 
+        />
       </div>
-      {/* Blurred background image */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundImage: `url(${backgroundImage})`, // Set the background image
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          filter: 'blur(5px)', // Apply blur effect
-          zIndex: 0, // Ensure the background image is behind the squares
-        }}
-      ></div>
+      
+      <div style={contentStyle}>
+        <Typography variant="h4" style={titleStyle}>
+          Point of Sale System
+        </Typography>
+        
+        <Grid container spacing={3} sx={{ maxWidth: 800, padding: 3 }}>
+          {navItems.map((item) => (
+            <Grid item xs={6} sm={4} key={item.path}>
+              <IconButton 
+                component={Link} 
+                to={item.path} 
+                fullWidth 
+                style={cardStyle}
+              >
+                <Paper elevation={3} style={paperStyle}>
+                  <div style={iconStyle}>
+                    {React.cloneElement(item.icon, { fontSize: 'large' })}
+                  </div>
+                  <Typography variant="subtitle1" style={labelStyle}>
+                    {item.label}
+                  </Typography>
+                </Paper>
+              </IconButton>
+            </Grid>
+          ))}
+        </Grid>
+      </div>
     </div>
   );
 };
 
-// Style for the non-blurred squares
-const squareStyle = {
-  width: '250px',
-  height: '250px',
-  backgroundColor: '#fff',
-  margin: '10px', // Add some margin between squares
+// Styles
+const containerStyle = {
+  position: 'relative',
+  width: '100%',
+  minHeight: '90vh',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
+};
+
+const backgroundStyle = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  zIndex: 0,
+};
+
+const imageStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+  filter: 'blur(4px)',
+};
+
+const overlayStyle = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+};
+
+const contentStyle = {
+  position: 'relative',
+  zIndex: 1,
+  textAlign: 'center',
+};
+
+const titleStyle = {
+  marginBottom: '2rem',
+  color: '#fff',
+  fontWeight: '600',
+};
+
+const cardStyle = {
+  textDecoration: 'none',
+  height: '100%',
+};
+
+const paperStyle = {
+  padding: '1.5rem',
+  width: '100%',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    backgroundColor: '#f8f9fa',
+  },
+};
+
+const iconStyle = {
+  marginBottom: '1rem',
+  color: '#2d3436',
+};
+
+const labelStyle = {
+  color: '#2d3436',
+  fontWeight: '500',
+  whiteSpace: 'nowrap',
 };
 
 export default Home;

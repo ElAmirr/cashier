@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { DataGrid } from '@mui/x-data-grid';
 import SearchProductByName from './SearchProductByName';
-import { Box, Button, Paper } from '@mui/material';
+import { Box, Button, Paper, CircularProgress, Alert } from '@mui/material';
 import DialogPopup from './DialogPopup';
 
 const Products = () => {
@@ -12,71 +12,95 @@ const Products = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [totalSum, setTotalSum] = useState(0);
+  const [error, setError] = useState(null);
 
   const tenant_id = localStorage.getItem('tenant_id'); // Retrieve tenant_id from local storage
+  const token = localStorage.getItem('token'); // Retrieve the token from localStorage
 
-  // Use useCallback to memoize fetchData
+  // Fetch products data
   const fetchData = useCallback(async () => {
     if (!tenant_id) {
-        alert('Tenant ID is missing. Please log in again.');
-        return;
+      setError('Tenant ID is missing. Please log in again.');
+      return;
     }
 
-    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
     if (!token) {
-        console.error('Token is missing. Please log in again.');
-        return;
+      setError('Token is missing. Please log in again.');
+      return;
     }
 
     setLoading(true);
+    setError(null);
+
     try {
-        console.log('Fetching products for Tenant ID:', tenant_id);
-        const response = await axios.get('/api/products', {
-            headers: {
-                Authorization: `Bearer ${token}`, // Include the token
-            },
-        });
-        console.log('API Response:', response.data);
+      console.log('Fetching products for Tenant ID:', tenant_id);
+      const response = await axios.get('/api/products', {
+        headers: {
+          Authorization: `Bearer ${token}`, // Include the token
+        },
+        params: {
+          tenant_id, // Include tenant_id in the request
+        },
+      });
+
+      console.log('API Response:', response.data);
+
+      if (!response.data || response.data.length === 0) {
+        setError('No products found for this tenant.');
+        setProducts([]);
+        setOriginalProducts([]);
+      } else {
         setProducts(response.data);
         setOriginalProducts(response.data);
+        calculateTotalSum(response.data); // Calculate total sum after fetching data
+      }
     } catch (error) {
-        console.error('Error fetching products:', error);
-        alert('An error occurred while fetching products. Please try again later.');
+      console.error('Error fetching products:', error);
+      setError('Failed to fetch products. Please check your connection and try again.');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-}, [tenant_id]);
+  }, [tenant_id, token]);
 
+  // Calculate total sum of products
+  const calculateTotalSum = (products) => {
+    const sum = products.reduce((acc, product) => {
+      const price = product.price_buy || 0;
+      const stock = product.stock || 0;
+      return acc + price * stock;
+    }, 0);
+    setTotalSum(sum);
+  };
 
-
+  // Fetch data on component mount
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  // Handle search results from SearchProductByName
   const handleSearch = (searchResults) => {
     setProducts(searchResults);
+    calculateTotalSum(searchResults); // Update total sum for filtered results
   };
 
+  // Display all products
   const displayAllProducts = () => {
     setProducts(originalProducts);
-    let sum = 0;
-    originalProducts.forEach((product) => {
-      const price = product.price_buy || 0;
-      const stock = product.stock || 0;
-      sum += price * stock;
-    });
-    setTotalSum(sum);
+    calculateTotalSum(originalProducts); // Recalculate total sum for all products
   };
 
+  // Handle edit product
   const handleEdit = (product) => {
     setSelectedProduct(product);
     setOpen(true);
   };
 
+  // Close the edit dialog
   const handleClose = () => {
     setOpen(false);
   };
 
+  // Save edited product
   const handleSave = async () => {
     if (!selectedProduct) return;
 
@@ -85,28 +109,28 @@ const Products = () => {
         ...selectedProduct,
         tenant_id, // Include tenant_id in the request
       });
-      console.log('Product updated successfully');
       setOpen(false);
-      fetchData();
+      fetchData(); // Refresh data after saving
     } catch (error) {
       console.error('Error updating product:', error);
-      alert('An error occurred while updating the product.');
+      setError('An error occurred while updating the product.');
     }
   };
 
+  // Handle delete product
   const handleDelete = async (productId) => {
     try {
       await axios.delete(`/api/products/${productId}`, {
         data: { tenant_id }, // Include tenant_id in the delete request
       });
-      console.log('Product deleted successfully');
-      fetchData();
+      fetchData(); // Refresh data after deletion
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('An error occurred while deleting the product.');
+      setError('An error occurred while deleting the product.');
     }
   };
 
+  // DataGrid columns
   const columns = [
     { field: 'id', headerName: 'ID', width: 50 },
     { field: 'name', headerName: 'Product', width: 120 },
@@ -179,6 +203,7 @@ const Products = () => {
           justifyContent: 'space-around',
         }}
       >
+        {/* Left Side: Search and Total Sum */}
         <Box
           sx={{
             width: { xs: '100%', md: '25%' },
@@ -204,19 +229,34 @@ const Products = () => {
               fontSize: '18px',
             }}
           >
-            Total Sum of Products: {totalSum} TND
+            Total Sum of Products: {totalSum.toFixed(2)} TND
           </Paper>
         </Box>
+
+        {/* Right Side: DataGrid */}
         <Box style={{ height: 560, minWidth: '60%' }}>
-          <DataGrid
-            rows={products}
-            columns={columns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10]}
-            loading={loading}
-          />
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataGrid
+              rows={products}
+              columns={columns}
+              pageSize={5}
+              rowsPerPageOptions={[5, 10]}
+              loading={loading}
+            />
+          )}
         </Box>
       </Box>
+
+      {/* Edit Dialog */}
       <DialogPopup
         open={open}
         handleClose={handleClose}
