@@ -21,27 +21,23 @@ const Orders = () => {
   }, []);
 
   const fetchPaidOrders = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      const tenant_id = localStorage.getItem('tenant_id'); // Ensure tenant_id is available
-  
-      const response = await axios.get('/api/orders/paid', {
-        headers: {
-          'Authorization': `Bearer ${username}`,
-          'Tenant-ID': tenant_id, // Include tenant_id in headers
-        },
-      });
-  
-      const ordersWithId = response.data.map(order => ({
-        ...order,
-        id: order.order_id,
-      }));
-      setPaidOrders(ordersWithId);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching paid orders:', error);
-    }
-  };
+  try {
+    const username = localStorage.getItem('username');
+    const response = await axios.get('/api/orders/paid', {
+      headers: {
+        'Authorization': `Bearer ${username}`,
+      },
+    });
+    const ordersWithId = response.data.map(order => ({
+      ...order,
+      id: order.order_id,
+    }));
+    setPaidOrders(ordersWithId);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error fetching paid orders:', error);
+  }
+};
   
   const fetchCreditOrders = async () => {
     try {

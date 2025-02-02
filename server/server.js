@@ -309,31 +309,25 @@ app.get('/api/orders', (req, res) => {
 
 // Protected route: Get all orders for a tenant
 app.get('/api/orders/paid', authenticateToken, async (req, res) => {
-    try {
-      const [rows] = await pool.query(
-        'SELECT * FROM orders WHERE tenant_id = ? AND payment = 1', // Fetch paid orders (payment = 1)
-        [req.tenant_id]
-      );
-      res.json(rows);
-    } catch (err) {
-      console.error('Error fetching paid orders:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-  
-  app.get('/api/orders/credit', authenticateToken, async (req, res) => {
-    try {
-      const [rows] = await pool.query(
-        'SELECT * FROM orders WHERE tenant_id = ? AND payment = 0', // Fetch credit orders (payment = 0)
-        [req.tenant_id]
-      );
-      res.json(rows);
-    } catch (err) {
-      console.error('Error fetching credit orders:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-  
+  try {
+    const [rows] = await pool.query('SELECT * FROM orders WHERE tenant_id = ? AND payment = 1', [req.user.tenant_id]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching paid orders:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/orders/credit', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM orders WHERE tenant_id = ? AND payment = 0', [req.user.tenant_id]);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching credit orders:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
   app.get('/api/orders/:orderId/details', authenticateToken, async (req, res) => {
     const orderId = req.params.orderId;
   
@@ -494,9 +488,23 @@ app.post('/api/reports', async (req, res) => {
     }
 });
 
+app.get('/api/app-start-time', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM app_start_time WHERE tenant_id = ?', [req.user.tenant_id]);
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).json({ error: 'No start time found' });
+    }
+  } catch (err) {
+    console.error('Error fetching app start time:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
-const PORT = process.env.PORT || 5000;
+
+const PORT = process.env.PORT || 5500;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

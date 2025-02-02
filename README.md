@@ -62,6 +62,8 @@ project-root/
 │
 └── README.md # Project README file
 
+## Website
+`https://cashier-ej7s.vercel.app`
 
 ## Screenshots
 ![Alt text](/screenshots/scs1.png)
